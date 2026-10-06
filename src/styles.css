@@ -41,49 +41,116 @@
 .index-buttons button{position:relative}.index-buttons button.done:after{content:'';position:absolute;bottom:3px;width:3px;height:3px;border-radius:50%;background:#efe5bc}
 .memory-emblem.garden{background:#e8edd7;color:#7b8853}.memory-emblem.stargazing{background:#e2e7ec;color:#6c8194}.memory-emblem.cafe{background:#f1e3cf;color:#ac7b56}.memory-emblem.coral{background:#dfeee8;color:#548d85}
 @media(prefers-reduced-motion:no-preference){.memory-card{animation:memory-arrive .32s ease-out}.journal[open]{animation:memory-arrive .25s ease-out}@keyframes memory-arrive{from{opacity:0;translate:0 9px}to{opacity:1;translate:0 0}}}
-/* Christmas edition: snowy sky, pine-green ink, cranberry and gold accents. */
-:root{--ink:#21392f;--muted:#6f7d78;--paper:#fffdf8;--orange:#b8323a;--pine:#2f6a49;--gold:#c9a253;color:var(--ink);background:#eef3f6}
-.app{background:radial-gradient(ellipse at 61% 42%,#fdfeff 0%,#eaf1f5 44%,#cddbe5 100%)}
-.app:before{border-color:#b8323a26}
-.brand-symbol{background:#b8323a;border-color:#8f2229;color:#fffaf2;box-shadow:inset 0 0 0 4px #f6c9a944}
-.brand-caption,.trip-heading{color:var(--ink)}
-.header-date{border-color:#c4ced2}
-.paper{background:#fffdf8;border-color:#5d7166;box-shadow:0 14px 44px #1f3a3014,3px 4px 0 #21392f14}
-.intro{overflow:hidden}
-.intro:after{content:'';position:absolute;top:0;left:0;right:0;height:7px;background:repeating-linear-gradient(-45deg,#b8323a 0 9px,#fffdf8 9px 18px,#2f6a49 18px 27px,#fffdf8 27px 36px)}
-.intro h1 em{color:#b8323a}
-.edition{display:flex;align-items:center;gap:5px;color:var(--gold)}
-.little-line{background:var(--gold)}
-.postmark{color:#b8323a;border-color:#b8323a88}
-.primary{background:#b8323a;border-color:#962830;box-shadow:inset 0 1px 0 #ffd9c24d,0 3px 0 #7d1f2614}.primary:hover{background:#9f2830}
+/* Christmas twilight edition: a starry blue-hour sky, a garland of lights, cream postcards with cranberry, pine and gold. */
+:root{--ink:#1d3328;--muted:#6f7a74;--paper:#fffaf0;--orange:#c8303a;--red:#c8303a;--red-deep:#9f2830;--pine:#2f6a49;--gold:#e2b75a;--gold-ink:#a8823a;--night:#0e1836;--on-night:#f6efe0;--on-night-muted:#b8bfd8;color:var(--ink);background:var(--night)}
+.app{background:radial-gradient(ellipse 70% 45% at 56% 118%,#f3a98a66,transparent 70%),radial-gradient(ellipse 50% 40% at 56% 52%,#3c4f9a55,transparent 70%),linear-gradient(180deg,#081028 0%,#111d42 34%,#24336a 68%,#47467e 100%)}
+.app:before{border-color:#e2b75a2e;z-index:3}
+
+/* Sky */
+.sky{position:absolute;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.sky>span{position:absolute;inset:0}
+.stars{background-image:radial-gradient(1.3px 1.3px at 23px 41px,#fff,transparent),radial-gradient(1px 1px at 141px 12px,#fff,transparent),radial-gradient(1.6px 1.6px at 201px 167px,#fff6d8,transparent),radial-gradient(1px 1px at 77px 131px,#fff,transparent),radial-gradient(1.2px 1.2px at 262px 88px,#dfe7ff,transparent),radial-gradient(1px 1px at 11px 199px,#fff,transparent);background-size:290px 230px;opacity:.85;animation:twinkle 4s ease-in-out infinite alternate;mask-image:linear-gradient(#000 0%,#000 55%,transparent 85%)}
+.stars.far{background-size:170px 150px;opacity:.45;animation-duration:6.5s;animation-delay:-2s;transform:translate(37px,19px)}
+@keyframes twinkle{from{opacity:.35}to{opacity:.9}}
+.aurora{inset:-12% -5% auto 18%!important;height:58%;background:radial-gradient(ellipse 40% 30% at 30% 55%,#5ff2c03a,transparent 70%),radial-gradient(ellipse 35% 28% at 62% 38%,#7fa8ff38,transparent 70%),radial-gradient(ellipse 30% 25% at 84% 58%,#c58cff26,transparent 70%);filter:blur(26px);animation:aurora 16s ease-in-out infinite alternate}
+@keyframes aurora{from{transform:translateX(-3%) skewX(-6deg);opacity:.75}to{transform:translateX(4%) skewX(5deg);opacity:1}}
+.moon{inset:12% 22% auto auto!important;width:64px;height:64px;border-radius:50%;background:radial-gradient(circle at 62% 38%,#ece0c400 0 9px,transparent 10px),radial-gradient(circle at 34% 64%,#e3d4b2 0 6px,transparent 7px),radial-gradient(circle at 58% 70%,#e6d8b9 0 4px,transparent 5px),radial-gradient(circle at 38% 34%,#fffdf6,#f4e9cf 62%,#e7d7b2);box-shadow:0 0 34px 8px #ffeec455,0 0 120px 40px #ffe2b01c}
+.moon{transition:opacity .5s}.has-memory .moon{opacity:0}
+.snow-css{background-image:radial-gradient(2px 2px at 30px 20px,#ffffffd0,transparent),radial-gradient(1.6px 1.6px at 120px 90px,#ffffffb0,transparent),radial-gradient(2.2px 2.2px at 180px 160px,#ffffffc0,transparent),radial-gradient(1.4px 1.4px at 70px 150px,#ffffff90,transparent);background-size:220px 200px;animation:snow-fall 14s linear infinite;opacity:.7}
+.snow-css.near{background-size:340px 300px;animation-duration:9s;opacity:.55;filter:blur(.6px);background-image:radial-gradient(3px 3px at 60px 40px,#fff,transparent),radial-gradient(2.4px 2.4px at 250px 200px,#fff,transparent)}
+@keyframes snow-fall{from{background-position:0 0}to{background-position:40px 600px}}
+
+/* Garland of lights across the top of the frame */
+.garland{position:absolute;top:14px;left:22px;right:22px;height:46px;z-index:44;pointer-events:none}
+.garland svg{position:absolute;inset:0 0 auto;width:100%;height:30px;overflow:visible}
+.garland path{fill:none;stroke:#1e2b26;stroke-width:2}
+.bulb{position:absolute;width:8px;height:13px;margin-left:-4px;border-radius:45% 45% 50% 50%/40% 40% 60% 60%;animation:bulb 2.4s ease-in-out infinite}
+.bulb:before{content:'';position:absolute;top:-3px;left:1.5px;width:5px;height:4px;border-radius:1px;background:#3b4a43}
+.bulb.b0{background:#ff5a5f;box-shadow:0 0 10px 3px #ff5a5f99}.bulb.b1{background:#ffd36b;box-shadow:0 0 10px 3px #ffd36b99}.bulb.b2{background:#5fe39a;box-shadow:0 0 10px 3px #5fe39a88}.bulb.b3{background:#7cc4ff;box-shadow:0 0 10px 3px #7cc4ff88}
+@keyframes bulb{0%,100%{opacity:1;filter:brightness(1.15)}50%{opacity:.55;filter:brightness(.7)}}
+
+/* Header on the night sky */
+.topbar{padding-top:58px}
+.brand{color:var(--on-night)}
+.brand-symbol{background:radial-gradient(circle at 35% 30%,#e0464f,#a8232d);border:2px solid var(--gold);color:#fff8ec;box-shadow:0 0 0 4px #e2b75a26,0 6px 20px #c8303a55}
+.brand-caption{color:var(--gold)}
+.trip-heading{color:var(--on-night)}.header-date{color:var(--on-night-muted);border-color:#ffffff30}
+.progress{color:var(--on-night)}.progress .muted{color:var(--on-night-muted)}.progress-ring:after{background:#111d42}
+.journal-button,.icon-button{color:var(--on-night);border-color:#ffffff38;background:#ffffff12;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.journal-button:hover,.icon-button:hover{background:#ffffff26;border-color:var(--gold)}
+.scene-caption{color:var(--on-night-muted)}.tiny-sun{color:var(--gold);font-size:32px;text-shadow:0 0 14px #e2b75a88}
+.north-mark{color:var(--on-night-muted)}
+.gesture-hint,.down-note,.index-label{color:var(--on-night-muted)}.gesture-hint i{background:#ffffff33}
+
+/* World */
+.world-wrap>div.planet-glow{position:absolute;z-index:1;left:50%;top:50%;width:min(76vmin,860px);aspect-ratio:1;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(circle,#ffd7a54d 0%,#a9b9ff24 42%,transparent 68%);pointer-events:none;animation:breathe 7s ease-in-out infinite alternate}
+@keyframes breathe{from{opacity:.75;transform:translate(-50%,-50%) scale(.97)}to{opacity:1;transform:translate(-50%,-50%) scale(1.03)}}
+.planet-shadow{background:#05091a8c}
+
+/* Postcards */
+.paper{background:var(--paper);border:1px solid #e2b75a;box-shadow:0 0 0 5px #fffaf01a,0 30px 70px #040a2299,0 8px 18px #040a2255}
+.intro,.collapsed-intro,.memory-card{background:repeating-linear-gradient(-45deg,#c8303a 0 10px,#fffaf0 10px 20px,#2f6a49 20px 30px,#fffaf0 30px 40px) top/100% 7px no-repeat,var(--paper)}
+.collapsed-intro{background-size:100% 5px,auto}
+.intro{overflow:visible}
+.intro:after{content:none}
+.holly{position:absolute;top:-24px;left:-20px;width:84px;transform:rotate(-14deg);filter:drop-shadow(0 4px 6px #0b142c55)}
+.intro h1{color:var(--ink)}
+.intro h1 em{color:var(--red);background:linear-gradient(100deg,#c8303a 10%,#e2554e 50%,#a8232d 90%);-webkit-background-clip:text;background-clip:text;color:transparent;padding-right:.08em}
+.edition{display:flex;align-items:center;gap:5px;color:var(--gold-ink)}
+.little-line{background:var(--gold-ink)}
+.postmark{color:var(--red);border-color:#c8303a77;opacity:.55}
+.intro-description{color:#5f6b64}
+.primary{background:linear-gradient(180deg,#d23a43,#ad2731);border-color:#8f1f28;box-shadow:inset 0 1px 0 #ffd2c466,0 8px 22px #c8303a55}.primary:hover{background:linear-gradient(180deg,#dc444d,#9f2830);box-shadow:inset 0 1px 0 #ffd2c466,0 10px 28px #c8303a77}
 .mini-dot{background:var(--gold)}
-.tiny-sun{color:#7fa2bd;font-size:34px}
-.scene-caption,.down-note,.gesture-hint,.index-label{color:#667a80}
-.icon-button{border-color:#a9b8bd;background:#fbfdfec7}.icon-button:hover{background:#fff}
-.journal-button{border-color:#a9b8bd;background:#fbfdfeb3}
-.north-mark{color:#6d8288}
-.marker{border-color:#5d716670;background:#fffdf8f0}.marker:hover{background:#fff4ef;border-color:#b8323a}
-.marker-number{background:#b8323a}.marker.visited .marker-number{background:var(--pine)}
-.marker.active{border-color:#b8323a;background:#fff2ee}
-.marker-stem{background:#fffdf8b3}.marker-stem:after{border-color:#5d7166;background:#fffdf8}
-.index-buttons button{background:#fffdf8b3;border-color:#8ca09477;color:#5d7166}
-.index-buttons button:hover,.index-buttons button.selected{background:#b8323a;border-color:#962830;color:#fff}
-.index-buttons button.done{background:var(--pine);border-color:#285c3f;color:#fff}
-.index-buttons button.selected{box-shadow:0 0 0 3px #f1c4c1}
-.memory-emblem{background:linear-gradient(125deg,#eef3ef,#dbe8df);color:var(--pine)}
-.memory-emblem.house,.memory-emblem.lighthouse{background:linear-gradient(125deg,#fbefe9,#f4dcd6);color:#9f2830}
-.memory-emblem .memory-stamp{border-color:#b8323a88;color:#b8323a}
+.collapsed-intro .tiny-sun{color:#7fa2bd;text-shadow:none}
+
+/* Markers */
+.marker{background:#fffaf0f2;border-color:#e2b75aaa;box-shadow:0 6px 18px #050b2466}
+.marker:hover{background:#fff;border-color:var(--red)}
+.marker-number{background:var(--red)}.marker.visited .marker-number{background:var(--pine)}
+.marker:not(.visited) .marker-number{animation:ping 2.6s ease-out infinite}
+@keyframes ping{0%{box-shadow:0 0 0 0 #ff6b6bb0}80%,100%{box-shadow:0 0 0 9px #ff6b6b00}}
+.marker.active{background:#fff3ec;border-color:var(--red);box-shadow:0 0 0 3px #e2b75a66,0 8px 22px #050b2477}
+.marker-stem{background:linear-gradient(#e2b75a,#e2b75a00)}.marker-stem:after{border-color:var(--gold);background:#fffaf0;box-shadow:0 0 8px #ffe0a0}
+
+/* Index buttons */
+.index-buttons button{color:var(--on-night);border-color:#ffffff38;background:#ffffff10;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+.index-buttons button:hover,.index-buttons button.selected{background:var(--red);border-color:#ff8a86;color:#fff}
+.index-buttons button.selected{box-shadow:0 0 0 3px #c8303a55,0 0 18px #ff5a5f88}
+.index-buttons button.done{background:var(--pine);border-color:#6fb08a;color:#fff}
+.index-buttons button.done:after{background:var(--gold)}
+
+/* Memory card */
+.memory-top{border-color:#efe6d3;padding-top:20px}
+.memory-emblem{background:linear-gradient(125deg,#eaf3ec,#d6e7dc);color:var(--pine)}
+.memory-emblem.house,.memory-emblem.lighthouse,.memory-emblem.cafe{background:linear-gradient(125deg,#fdf0e8,#f6dccf);color:var(--red-deep)}
+.memory-emblem.stargazing,.memory-emblem.coral{background:linear-gradient(125deg,#e9eefb,#d3dcf3);color:#3d5a9a}
+.memory-emblem.garden{background:linear-gradient(125deg,#f8f1dc,#efe1b8);color:var(--gold-ink)}
+.memory-emblem .memory-stamp{border-color:#c8303a88;color:var(--red)}
 .memory-date>span:last-child{color:var(--pine)}
-.memory-card blockquote{color:#9f2830;border-color:var(--gold)}
-.next-button{color:#b8323a}
-.close-button:hover{background:#eef2f0}
-.journal h2 span{color:#b8323a}
-.journal-entry:hover{background:#f3f6f4}
-.entry-number.done{background:#e3eee6;color:var(--pine)}
-.journal::backdrop{background:#1f3a3066}
-.toast{background:#21392f}
-.loading{background:#fbfdfedd;color:#5d7166}
-.planet-shadow{background:#4f6b7a33}
-button:focus-visible,a:focus-visible{outline-color:#9f2830}
-@media(max-width:700px){.index-buttons button.selected{box-shadow:0 0 0 2px #f1c4c1}}
-.progress-ring:after{background:#eef3f6}
+.story{color:#4f5d56}
+.memory-card blockquote{color:var(--red-deep);border-color:var(--gold)}
+.memory-bottom{border-color:#efe6d3}
+.next-button{color:var(--red)}
+.close-button:hover{background:#f3ece0}
+
+/* Journal and overlays */
+.journal::backdrop{background:#070d24b8;backdrop-filter:blur(6px)}
+.journal h2 span{color:var(--red)}
+.journal-summary{border-color:#ece2cc}.journal-entry{border-color:#efe6d3}.journal-entry:hover{background:#fbf3e4}
+.entry-number{border-color:#d9c79c;color:var(--gold-ink)}.entry-number.done{background:#e3eee6;border-color:#9cc2a8;color:var(--pine)}
+.loading{background:#ffffff14;color:var(--on-night);border:1px solid #ffffff2a;backdrop-filter:blur(10px)}
+.webgl-fallback{border-color:var(--gold)}
+.toast{background:#1d3328;border:1px solid var(--gold)}
+button:focus-visible,a:focus-visible{outline-color:var(--gold)}
+
+@media(max-width:1100px){.topbar{padding-top:54px}}
+@media(max-width:700px){
+  .garland{top:9px;left:12px;right:12px}.bulb{width:6px;height:10px;margin-left:-3px}.bulb:before{left:1px;width:4px;height:3px}
+  .topbar{padding-top:44px}
+  .moon{display:none}
+  .holly{width:60px;top:6px;left:auto;right:12px;transform:rotate(10deg)}
+  .intro{overflow:auto}
+  .edition{margin-right:52px}
+  .index-buttons button.selected{box-shadow:0 0 0 2px #c8303a55,0 0 12px #ff5a5f88}
+}
