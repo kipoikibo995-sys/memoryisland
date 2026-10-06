@@ -123,10 +123,10 @@
 /* Memory card */
 .memory-top{border-color:#efe6d3;padding-top:20px}
 .memory-emblem{background:linear-gradient(125deg,#eaf3ec,#d6e7dc);color:var(--pine)}
-.memory-emblem.house,.memory-emblem.lighthouse,.memory-emblem.cafe{background:linear-gradient(125deg,#fdf0e8,#f6dccf);color:var(--red-deep)}
-.memory-emblem.stargazing,.memory-emblem.coral{background:linear-gradient(125deg,#e9eefb,#d3dcf3);color:#3d5a9a}
-.memory-emblem.garden{background:linear-gradient(125deg,#f8f1dc,#efe1b8);color:var(--gold-ink)}
-.memory-emblem .memory-stamp{border-color:#c8303a88;color:var(--red)}
+.memory-emblem.lapland,.memory-emblem.london,.memory-emblem.nuremberg{background:linear-gradient(125deg,#fdf0e8,#f6dccf);color:var(--red-deep)}
+.memory-emblem.nyhavn,.memory-emblem.prague,.memory-emblem.zermatt{background:linear-gradient(125deg,#e9eefb,#d3dcf3);color:#3d5a9a}
+.memory-emblem.strasbourg,.memory-emblem.vienna,.memory-emblem.silentnight{background:linear-gradient(125deg,#f8f1dc,#efe1b8);color:var(--gold-ink)}
+.memory-emblem .memory-stamp{border-color:#c8303a88;color:var(--red);display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:80px;min-height:52px;padding:8px 10px;font-size:10px!important;line-height:1.2;white-space:nowrap}
 .memory-date>span:last-child{color:var(--pine)}
 .story{color:#4f5d56}
 .memory-card blockquote{color:var(--red-deep);border-color:var(--gold)}

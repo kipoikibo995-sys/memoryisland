@@ -1,6 +1,6 @@
 # Memory Island
 
-An interactive, procedural 3D travel journal. Ten places, ten fictional memories, one summer to keep.
+An interactive, procedural 3D travel journal. Ten famous European Christmas places, from Santa Claus Village in Lapland to Christmas morning in Zermatt, each with a miniature landmark and a fictional memory.
 
 Built with React, TypeScript, Vite, Three.js, React Three Fiber and Drei. All 3D scenery is generated in code; no paid models, backend, or external image service is required. Fonts are served locally with licenses in `public/fonts`.
 
@@ -24,7 +24,7 @@ npm run preview
 
 ## Edit the memories
 
-Edit `src/data/trip.ts`. Each memory has an ID, title, date (`YYYY-MM-DD`), local time, chapter, story, closing note, model kind, and `[latitude, longitude]` in degrees. Keep IDs unchanged to preserve existing local progress. The fictional setting and English stories are editable sample content.
+Edit `src/data/trip.ts`. Each memory has an ID, title, date (`YYYY-MM-DD`), local time, chapter, story, closing note, local Christmas greeting, model kind, and `[latitude, longitude]` in degrees. Keep IDs unchanged to preserve existing local progress. The fictional setting and English stories are editable sample content.
 
 Optional photos: put a file in `public/photos`, then set `image: '/photos/your-photo.jpg'` and a descriptive `imageAlt` on a memory. Optional audio: put a file in `public/audio` and set `trip.audio` to its root-relative path. The audio control is hidden until configured, and playback requires interaction.
 
@@ -36,8 +36,9 @@ The UI derives its total from the memory array. Terrain roads currently connect 
 - `src/World.tsx`: ocean, clouds, landmark markers, lighting and camera interaction.
 - `src/terrain.ts`: geographic layout, elevation, coastlines and road routes.
 - `src/Landscape.tsx`: procedural terrain, instanced forest and meadow, bridge, crops and utility poles.
-- `src/Details.tsx`: boats, palms, small architecture and decorative objects.
-- `src/NewLandmarks.tsx`: garden, stargazing deck, coral cove and café.
+- `src/Details.tsx`: boats, small architecture and decorative objects.
+- `src/Landmarks.tsx`: the ten city landmarks (Big Ben, Týn Church, the Matterhorn and more) and their market stalls, rink and props.
+- `src/Christmas.tsx`: Christmas tree, lights, snowfall, snowman, Santa's sleigh and other festive pieces.
 - `src/styles.css`: responsive layout, typography, focus styles and motion preferences.
 - `src/data/trip.ts`: editable trip and memory content.
 

@@ -27,7 +27,7 @@ export function terrainHeight(n:THREE.Vector3){
   return h;
 }
 export function surface(n:THREE.Vector3,offset=0){return n.clone().multiplyScalar(PLANET_RADIUS+Math.max(terrainHeight(n),0)+offset);}
-export const roadPairs:[[number,number],[number,number],[number,number],[number,number],[number,number],[number,number],[number,number]]=[[0,1],[1,2],[0,2],[1,7],[4,6],[4,8],[5,9]];
+export const roadPairs:[[number,number],[number,number],[number,number],[number,number],[number,number],[number,number],[number,number]]=[[0,1],[1,4],[0,4],[1,8],[6,5],[6,9],[3,7]];
 export const roadSamples=roadPairs.flatMap(([a,b])=>Array.from({length:52},(_,i)=>{const t=i/51;const n=memoryNormals[a].clone().lerp(memoryNormals[b],t).normalize();return {n,t,pair:a};})).filter(p=>terrainHeight(p.n)>.024);
 export function nearRoad(n:THREE.Vector3){return roadSamples.some(p=>n.dot(p.n)>.9996);}
 export function nearMemory(n:THREE.Vector3,radius=.255){return memoryNormals.some(m=>n.dot(m)>Math.cos(radius));}
