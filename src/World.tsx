@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
-import { EffectComposer, N8AO, SMAA } from '@react-three/postprocessing';
+import { Bloom, EffectComposer, N8AO, SMAA } from '@react-three/postprocessing';
+import { Bulbs, ChristmasTree, Sled, Snowfall, Snowman } from './Christmas';
 import * as THREE from 'three';
 import { trip } from './data/trip';
 import Landscape from './Landscape';
@@ -22,18 +23,23 @@ function Island({memory,reduced}:{memory:Memory;reduced:boolean}){
   return <group position={n.clone().multiplyScalar(R)} quaternion={q}>
     <IslandDetails kind={memory.kind} reduced={reduced}/><NewLandmarks kind={memory.kind}/>
     <group position={[0,.075,0]} scale={.82}>
-      {memory.kind==='house'&&<House/>}
+      {memory.kind==='house'&&<House reduced={reduced}/>}
       {memory.kind==='lighthouse'&&<Lighthouse/>}
       {memory.kind==='harbor'&&<><Harbor/><HarborCraft/></>}
       {memory.kind==='beach'&&<Beach/>}
-      {memory.kind==='hill'&&<Hill/>}
+      {memory.kind==='hill'&&<Hill reduced={reduced}/>}
       
     </group>
   </group>;
 }
-function House(){return <group rotation={[0,-.3,0]}>
+const ROOF=(()=>{const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.Float32BufferAttribute([-.28,.34,-.24,.28,.34,-.24,0,.57,-.24,-.28,.34,.24,.28,.34,.24,0,.57,.24],3));g.setIndex([0,2,1,3,4,5,0,3,5,0,5,2,1,2,5,1,5,4,0,1,4,0,4,3]);g.computeVertexNormals();return g;})();
+const EAVE_LIGHTS=[...[-1,1].flatMap(x=>Array.from({length:12},(_,i)=>new THREE.Vector3(x*.3,.33,-.25+i*.0455))),...Array.from({length:13},(_,i)=>{const t=i/12;return new THREE.Vector3(-.3+t*.6,.33+(1-Math.abs(t*2-1))*.24,.262);})];
+function House({reduced}:{reduced:boolean}){return <group rotation={[0,-.3,0]}>
   <mesh castShadow receiveShadow position={[0,.18,0]}><boxGeometry args={[.43,.36,.36]}/><meshStandardMaterial color="#fff0ca"/></mesh>
   <GableRoof/><CottageCraft/>
+  <mesh geometry={ROOF} position={[0,.022,0]} scale={[1.08,1,1.06]} castShadow receiveShadow><meshStandardMaterial color="#f4f7f9" roughness={.85}/></mesh>
+  <Bulbs points={EAVE_LIGHTS} size={.0095} reduced={reduced} seed={2}/>
+  <group position={[.06,.26,.192]}><mesh rotation={[0,0,0]}><torusGeometry args={[.035,.012,8,22]}/><meshStandardMaterial color="#2f6a49"/></mesh><mesh position={[0,-.032,.006]}><sphereGeometry args={[.011,10,8]}/><meshStandardMaterial color="#c8303a"/></mesh></group>
   <mesh position={[.04,.12,.183]}><boxGeometry args={[.095,.24,.014]}/><meshStandardMaterial color="#4a8279"/></mesh>
   <mesh position={[-.12,.23,.184]}><boxGeometry args={[.085,.085,.018]}/><meshStandardMaterial color="#91bec3"/></mesh>
   <mesh position={[.16,.42,-.06]} castShadow><boxGeometry args={[.065,.26,.07]}/><meshStandardMaterial color="#e8cbad"/></mesh>
@@ -55,17 +61,12 @@ function Harbor(){return <group rotation={[0,-.3,0]}>
   <group position={[.41,-.035,.63]} rotation={[0,.4,0]}><Sailboat scale={.9}/></group>
 </group>}
 function Beach(){return <group position={[-.24,-.02,.23]}>
-  <mesh position={[0,.18,0]}><cylinderGeometry args={[.012,.012,.4,6]}/><meshStandardMaterial color="#9f7752"/></mesh>
-  <mesh castShadow position={[0,.4,0]}><coneGeometry args={[.24,.14,8]}/><meshStandardMaterial color="#e89b65" flatShading/></mesh>
-  <mesh position={[.16,.015,.17]} rotation={[-Math.PI/2,0,-.2]}><planeGeometry args={[.18,.32]}/><meshStandardMaterial color="#fff4d2" side={THREE.DoubleSide}/></mesh>
-  <mesh position={[-.15,.02,.18]}><sphereGeometry args={[.045,8,6]}/><meshStandardMaterial color="#edce8b"/></mesh>
+  <group rotation={[0,.5,0]}><Snowman/></group>
+  <group position={[.2,0,.16]} rotation={[0,-.6,0]}><Sled/></group>
 </group>}
-function Hill(){return <group>
-  <mesh castShadow position={[0,.07,0]} scale={[1,.48,.85]}><sphereGeometry args={[.31,18,12]}/><meshStandardMaterial color="#91aa72"/></mesh>
-  <group position={[0,.18,0]}>
-    <mesh position={[0,.25,0]}><cylinderGeometry args={[.014,.02,.5,6]}/><meshStandardMaterial color="#816748"/></mesh>
-    <mesh position={[.105,.45,0]} rotation={[0,.2,0]}><planeGeometry args={[.21,.12]}/><meshStandardMaterial color="#e99c63" side={THREE.DoubleSide}/></mesh>
-  </group>
+function Hill({reduced}:{reduced:boolean}){return <group>
+  <mesh castShadow receiveShadow position={[0,.07,0]} scale={[1,.48,.85]}><sphereGeometry args={[.31,32,20]}/><meshStandardMaterial color="#eef3f6" roughness={.9}/></mesh>
+  <group position={[0,.15,0]} scale={1.55}><ChristmasTree reduced={reduced}/></group>
 </group>}
 function Clouds({reduced}:{reduced:boolean}){
   const ref=useRef<THREE.Group>(null);
@@ -76,12 +77,12 @@ function Clouds({reduced}:{reduced:boolean}){
     </group>;
   })}</group>
 }
-// Depth-tinted sea: deep teal offshore, turquoise shallows and a soft foam line along every coast.
+// Depth-tinted winter sea: deep cold blue offshore, pale icy shallows and a frosted line along every coast.
 function Ocean({reduced}:{reduced:boolean}){
   const time=useMemo(()=>({value:0}),[]);
   const geometry=useMemo(()=>{
     const g=new THREE.SphereGeometry(R,256,160),p=g.attributes.position,colors:number[]=[],n=new THREE.Vector3(),c=new THREE.Color();
-    const deep=new THREE.Color('#3c97a6'),shallow=new THREE.Color('#79cfc4'),foam=new THREE.Color('#eef6ec');
+    const deep=new THREE.Color('#2e6f86'),shallow=new THREE.Color('#86c6d2'),foam=new THREE.Color('#f3f8fb');
     for(let i=0;i<p.count;i++){
       const h=terrainHeight(n.fromBufferAttribute(p,i).normalize());
       c.copy(deep).lerp(shallow,THREE.MathUtils.smoothstep(h,-.075,-.004)).lerp(foam,THREE.MathUtils.smoothstep(h,-.009,0)*.75);
@@ -122,13 +123,13 @@ function ShadowSetup(){const scene=useThree(s=>s.scene);useLayoutEffect(()=>{sce
 const SHADOW_MAP=window.innerWidth<700?2048:4096;
 function Ready({onReady}:{onReady:()=>void}){useEffect(onReady,[onReady]);return null;}
 export default function World({selected,visited,onSelect,request,reduced,onReady,paused}:{selected:string|null;visited:string[];onSelect:(m:Memory)=>void;request:ViewRequest;reduced:boolean;onReady:()=>void;paused:boolean}){
-  return <Canvas shadows={{type:THREE.PCFShadowMap}} dpr={[1,window.innerWidth<700?1.5:2]} camera={{position:[0,3.2,8.7],fov:43,near:.1,far:80}} gl={{antialias:false,alpha:true,stencil:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.12}} onCreated={({gl})=>{gl.setClearColor(0x000000,0);}}>
-    <ambientLight intensity={.42}/><hemisphereLight args={['#fff6df','#7fa79a',.95]}/><directionalLight position={[-5.4,5.2,4.6]} intensity={3.3} color="#fff0d6" castShadow shadow-mapSize={[SHADOW_MAP,SHADOW_MAP]} shadow-camera-left={-3.4} shadow-camera-right={3.4} shadow-camera-top={3.4} shadow-camera-bottom={-3.4} shadow-camera-near={3} shadow-camera-far={15} shadow-bias={-.00015} shadow-normalBias={.012}/><directionalLight position={[5,1.5,-4]} intensity={.85} color="#bfe6f0"/>
-    <Ocean reduced={reduced}/><Landscape/><LakesideLife/>{trip.memories.map(m=><Island key={m.id} memory={m} reduced={reduced}/>)}<SailingFleet reduced={reduced}/><SeaDetails reduced={reduced}/><Clouds reduced={reduced}/>
+  return <Canvas shadows={{type:THREE.PCFShadowMap}} dpr={[1,window.innerWidth<700?1.5:2]} camera={{position:[0,3.2,8.7],fov:43,near:.1,far:80}} gl={{antialias:false,alpha:true,stencil:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.02}} onCreated={({gl})=>{gl.setClearColor(0x000000,0);}}>
+    <ambientLight intensity={.4}/><hemisphereLight args={['#f1f6ff','#8ea4b6',.95]}/><directionalLight position={[-5.4,5.2,4.6]} intensity={2.9} color="#ffeed8" castShadow shadow-mapSize={[SHADOW_MAP,SHADOW_MAP]} shadow-camera-left={-3.4} shadow-camera-right={3.4} shadow-camera-top={3.4} shadow-camera-bottom={-3.4} shadow-camera-near={3} shadow-camera-far={15} shadow-bias={-.00015} shadow-normalBias={.012}/><directionalLight position={[5,1.5,-4]} intensity={1} color="#b9d3ff"/>
+    <Ocean reduced={reduced}/><Landscape/><LakesideLife/>{trip.memories.map(m=><Island key={m.id} memory={m} reduced={reduced}/>)}<SailingFleet reduced={reduced}/><SeaDetails reduced={reduced}/><Clouds reduced={reduced}/><Snowfall reduced={reduced} count={window.innerWidth<700?900:1600}/>
     {trip.memories.map((m,i)=><Marker key={m.id} memory={m} index={i} visited={visited.includes(m.id)} active={selected===m.id} onSelect={onSelect}/>)}
     <CameraRig request={request} reduced={reduced} paused={paused}/><ShadowSetup/><Ready onReady={onReady}/>
-    {/* Ambient occlusion grounds trees, houses and rocks so the planet reads as one crafted model. */}
-    <EffectComposer multisampling={0} enableNormalPass={false}><N8AO aoRadius={.32} distanceFalloff={.6} intensity={1.9} color="#24412f" halfRes quality="medium"/><SMAA/></EffectComposer>
+    {/* Ambient occlusion grounds trees, houses and rocks; bloom only picks up the over-bright bulbs and star. */}
+    <EffectComposer multisampling={0} enableNormalPass={false}><N8AO aoRadius={.32} distanceFalloff={.6} intensity={1.9} color="#24412f" halfRes quality="medium"/><Bloom mipmapBlur luminanceThreshold={1.6} luminanceSmoothing={.25} intensity={1.25} radius={.65}/><SMAA/></EffectComposer>
   </Canvas>
 }
 

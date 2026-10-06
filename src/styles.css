@@ -41,3 +41,49 @@
 .index-buttons button{position:relative}.index-buttons button.done:after{content:'';position:absolute;bottom:3px;width:3px;height:3px;border-radius:50%;background:#efe5bc}
 .memory-emblem.garden{background:#e8edd7;color:#7b8853}.memory-emblem.stargazing{background:#e2e7ec;color:#6c8194}.memory-emblem.cafe{background:#f1e3cf;color:#ac7b56}.memory-emblem.coral{background:#dfeee8;color:#548d85}
 @media(prefers-reduced-motion:no-preference){.memory-card{animation:memory-arrive .32s ease-out}.journal[open]{animation:memory-arrive .25s ease-out}@keyframes memory-arrive{from{opacity:0;translate:0 9px}to{opacity:1;translate:0 0}}}
+/* Christmas edition: snowy sky, pine-green ink, cranberry and gold accents. */
+:root{--ink:#21392f;--muted:#6f7d78;--paper:#fffdf8;--orange:#b8323a;--pine:#2f6a49;--gold:#c9a253;color:var(--ink);background:#eef3f6}
+.app{background:radial-gradient(ellipse at 61% 42%,#fdfeff 0%,#eaf1f5 44%,#cddbe5 100%)}
+.app:before{border-color:#b8323a26}
+.brand-symbol{background:#b8323a;border-color:#8f2229;color:#fffaf2;box-shadow:inset 0 0 0 4px #f6c9a944}
+.brand-caption,.trip-heading{color:var(--ink)}
+.header-date{border-color:#c4ced2}
+.paper{background:#fffdf8;border-color:#5d7166;box-shadow:0 14px 44px #1f3a3014,3px 4px 0 #21392f14}
+.intro{overflow:hidden}
+.intro:after{content:'';position:absolute;top:0;left:0;right:0;height:7px;background:repeating-linear-gradient(-45deg,#b8323a 0 9px,#fffdf8 9px 18px,#2f6a49 18px 27px,#fffdf8 27px 36px)}
+.intro h1 em{color:#b8323a}
+.edition{display:flex;align-items:center;gap:5px;color:var(--gold)}
+.little-line{background:var(--gold)}
+.postmark{color:#b8323a;border-color:#b8323a88}
+.primary{background:#b8323a;border-color:#962830;box-shadow:inset 0 1px 0 #ffd9c24d,0 3px 0 #7d1f2614}.primary:hover{background:#9f2830}
+.mini-dot{background:var(--gold)}
+.tiny-sun{color:#7fa2bd;font-size:34px}
+.scene-caption,.down-note,.gesture-hint,.index-label{color:#667a80}
+.icon-button{border-color:#a9b8bd;background:#fbfdfec7}.icon-button:hover{background:#fff}
+.journal-button{border-color:#a9b8bd;background:#fbfdfeb3}
+.north-mark{color:#6d8288}
+.marker{border-color:#5d716670;background:#fffdf8f0}.marker:hover{background:#fff4ef;border-color:#b8323a}
+.marker-number{background:#b8323a}.marker.visited .marker-number{background:var(--pine)}
+.marker.active{border-color:#b8323a;background:#fff2ee}
+.marker-stem{background:#fffdf8b3}.marker-stem:after{border-color:#5d7166;background:#fffdf8}
+.index-buttons button{background:#fffdf8b3;border-color:#8ca09477;color:#5d7166}
+.index-buttons button:hover,.index-buttons button.selected{background:#b8323a;border-color:#962830;color:#fff}
+.index-buttons button.done{background:var(--pine);border-color:#285c3f;color:#fff}
+.index-buttons button.selected{box-shadow:0 0 0 3px #f1c4c1}
+.memory-emblem{background:linear-gradient(125deg,#eef3ef,#dbe8df);color:var(--pine)}
+.memory-emblem.house,.memory-emblem.lighthouse{background:linear-gradient(125deg,#fbefe9,#f4dcd6);color:#9f2830}
+.memory-emblem .memory-stamp{border-color:#b8323a88;color:#b8323a}
+.memory-date>span:last-child{color:var(--pine)}
+.memory-card blockquote{color:#9f2830;border-color:var(--gold)}
+.next-button{color:#b8323a}
+.close-button:hover{background:#eef2f0}
+.journal h2 span{color:#b8323a}
+.journal-entry:hover{background:#f3f6f4}
+.entry-number.done{background:#e3eee6;color:var(--pine)}
+.journal::backdrop{background:#1f3a3066}
+.toast{background:#21392f}
+.loading{background:#fbfdfedd;color:#5d7166}
+.planet-shadow{background:#4f6b7a33}
+button:focus-visible,a:focus-visible{outline-color:#9f2830}
+@media(max-width:700px){.index-buttons button.selected{box-shadow:0 0 0 2px #f1c4c1}}
+.progress-ring:after{background:#eef3f6}
