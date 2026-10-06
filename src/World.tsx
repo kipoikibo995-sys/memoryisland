@@ -1,6 +1,6 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
-import { Html, OrbitControls } from '@react-three/drei';
+import { Environment, Html, Lightformer, OrbitControls } from '@react-three/drei';
 import { Bloom, EffectComposer, N8AO, SMAA } from '@react-three/postprocessing';
 import { Bulbs, ChimneySmoke, ChristmasTree, Glow, SantaSleigh, Sled, Snowfall, Snowman } from './Christmas';
 import * as THREE from 'three';
@@ -70,10 +70,12 @@ function Hill({reduced}:{reduced:boolean}){return <group>
   <group position={[0,.15,0]} scale={1.55}><ChristmasTree reduced={reduced}/></group>
 </group>}
 function Clouds({reduced}:{reduced:boolean}){
-  const ref=useRef<THREE.Group>(null);
-  useFrame(({clock})=>{if(ref.current&&!reduced)ref.current.rotation.y=clock.elapsedTime*.015;});
+  const ref=useRef<THREE.Group>(null);const puffs=useRef<(THREE.Group|null)[]>([]);const p=useMemo(()=>new THREE.Vector3(),[]);
+  // Clouds that drift close to the camera fade out so they never smother a close-up or the header.
+  useFrame(({clock,camera})=>{if(ref.current&&!reduced)ref.current.rotation.y=clock.elapsedTime*.015;
+    puffs.current.forEach(g=>{if(!g)return;const o=THREE.MathUtils.clamp((g.getWorldPosition(p).distanceTo(camera.position)-2.4)/1.8,0,1)*.94;g.visible=o>.01;g.children.forEach(m=>{((m as THREE.Mesh).material as THREE.MeshStandardMaterial).opacity=o;});});});
   return <group ref={ref}>{Array.from({length:9},(_,i)=>{
-    const a=i/9*Math.PI*2;return <group key={i} position={[Math.sin(a)*3.42,Math.sin(a*2+1)*1.35,Math.cos(a)*3.42]} rotation={[0,a,0]} scale={.48+rand(i)*.38}>
+    const a=i/9*Math.PI*2;return <group key={i} ref={g=>{puffs.current[i]=g;}} position={[Math.sin(a)*3.42,Math.sin(a*2+1)*1.35,Math.cos(a)*3.42]} rotation={[0,a,0]} scale={.48+rand(i)*.38}>
       {[[-.23,0,0],[0,.07,0],[.24,0,.02],[.02,-.04,.14]].map((p,j)=><mesh key={j} position={p as [number,number,number]} scale={[1.35,.8,.85]}><sphereGeometry args={[j===1?.25:.2,24,16]}/><meshStandardMaterial color="#fffdf0" transparent opacity={.94} depthWrite={false}/></mesh>)}
     </group>;
   })}</group>
@@ -97,18 +99,18 @@ function Ocean({reduced}:{reduced:boolean}){
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n transformed += normal * (sin(position.x * 9.0 + uTime * 0.7) * cos(position.z * 8.0 + uTime * 0.5) * 0.006);');
   }}/></mesh>
 }
-function Marker({memory,index,visited,active,onSelect}:{memory:Memory;index:number;visited:boolean;active:boolean;onSelect:(m:Memory)=>void}){
+function Marker({memory,index,visited,active,focused,onSelect}:{memory:Memory;index:number;visited:boolean;active:boolean;focused:boolean;onSelect:(m:Memory)=>void}){
   const n=useMemo(()=>normal(memory.position),[memory.position]);const p=useMemo(()=>n.clone().multiplyScalar(R+.86).add(new THREE.Vector3(.24,0,0).applyQuaternion(orient(n))),[n]);
   const [view,setView]=useState(0);const visibility=useRef(0);const visible=view>0;const delta=useMemo(()=>new THREE.Vector3(),[]);
   useFrame(({camera})=>{const facing=n.dot(delta.copy(camera.position).sub(n.clone().multiplyScalar(R)).normalize());const next=facing>.22?(facing>.55?2:1):0;if(next!==visibility.current){visibility.current=next;setView(next);}});
-  return <group position={p}><Html center zIndexRange={[30,10]} style={{display:visible?'block':'none'}}><button className={`marker ${visited?'visited':''} ${active?'active':''} ${view===1&&!active?'compact':''}`} tabIndex={visible?0:-1} aria-label={`${memory.title}${visited?' — discovered':''}`} title={memory.title} aria-pressed={active} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();onSelect(memory);}}><span className="marker-number">{String(index+1).padStart(2,'0')}</span><span className="marker-label">{memory.title}</span><span className="marker-arrow">↗</span></button><span className="marker-stem"/></Html></group>
+  return <group position={p}><Html center zIndexRange={[30,10]} style={{display:visible?'block':'none'}}><button className={`marker ${visited?'visited':''} ${active?'active':''} ${(view===1||focused)&&!active?'compact':''}`} tabIndex={visible?0:-1} aria-label={`${memory.title}${visited?' — discovered':''}`} title={memory.title} aria-pressed={active} onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();onSelect(memory);}}><span className="marker-number">{String(index+1).padStart(2,'0')}</span><span className="marker-label">{memory.title}</span><span className="marker-arrow">↗</span></button><span className="marker-stem"/></Html></group>
 }
 export type ViewRequest={id:number;position?:[number,number]};
 // Selected places are framed from the front at an angle so towers and facades read, not straight down.
 const TILT=.62;
 function viewFor(position:[number,number],distance:number){
-  const n=normal(position),target=n.clone().multiplyScalar(R+.22);
-  return{camera:n.clone().multiplyScalar(Math.cos(TILT)).addScaledVector(viewSide(n),Math.sin(TILT)).multiplyScalar(distance-R).add(target),target};
+  const n=normal(position),target=n.clone().multiplyScalar(R+.2);
+  return{camera:n.clone().multiplyScalar(Math.cos(TILT)).addScaledVector(viewSide(n),Math.sin(TILT)).multiplyScalar(distance).add(target),target};
 }
 function CameraRig({request,reduced,paused}:{request:ViewRequest;reduced:boolean;paused:boolean}){
   const hold=useRef<{camera:THREE.Vector3;target:THREE.Vector3}|null>(null);const controls=useRef<React.ComponentRef<typeof OrbitControls>>(null);const {camera,size}=useThree();
@@ -116,7 +118,7 @@ function CameraRig({request,reduced,paused}:{request:ViewRequest;reduced:boolean
   const move=useRef<{from:THREE.Vector3;to:THREE.Vector3;fromTarget:THREE.Vector3;toTarget:THREE.Vector3;time:number}|null>(null);
   useEffect(()=>{
     const distance=size.width<520?15.2:size.width<650?12.6:10.7;
-    const view=request.position?viewFor(request.position,size.width<520?14:size.width<650?11.2:9.3):{camera:new THREE.Vector3(0,3.2,8.7).normalize().multiplyScalar(distance),target:new THREE.Vector3()};
+    const view=request.position?viewFor(request.position,size.width<520?6.2:size.width<650?5.2:3.9):{camera:new THREE.Vector3(0,3.2,8.7).normalize().multiplyScalar(distance),target:new THREE.Vector3()};
     hold.current=request.position?view:null;
     const fromTarget=controls.current?controls.current.target.clone():new THREE.Vector3();
     if(reduced){camera.position.copy(view.camera);target.copy(view.target);controls.current?.target.copy(target);camera.lookAt(target);controls.current?.update();setMoving(false);}
@@ -127,7 +129,7 @@ function CameraRig({request,reduced,paused}:{request:ViewRequest;reduced:boolean
     target.lerpVectors(m.fromTarget,m.toTarget,s);controls.current?.target.copy(target);
     camera.position.copy(a.applyQuaternion(partial).multiplyScalar(THREE.MathUtils.lerp(m.from.length(),m.to.length(),s)));camera.lookAt(target);controls.current?.update();if(t===1){move.current=null;setMoving(false);}
   });
-  return <OrbitControls ref={controls} makeDefault enabled={!moving} enablePan={false} enableDamping={!reduced&&!moving} dampingFactor={.07} rotateSpeed={.55} zoomSpeed={.65} minDistance={6.6} maxDistance={16} minPolarAngle={.08} maxPolarAngle={Math.PI-.08} autoRotate={!interacted&&!paused&&!reduced&&!moving} autoRotateSpeed={.055} onStart={()=>{hold.current=null;setInteracted(true);move.current=null;setMoving(false);}}/>;
+  return <OrbitControls ref={controls} makeDefault enabled={!moving} enablePan={false} enableDamping={!reduced&&!moving} dampingFactor={.07} rotateSpeed={.55} zoomSpeed={.65} minDistance={request.position?2.6:6.6} maxDistance={16} minPolarAngle={.08} maxPolarAngle={Math.PI-.08} autoRotate={!interacted&&!paused&&!reduced&&!moving} autoRotateSpeed={.055} onStart={()=>{hold.current=null;setInteracted(true);move.current=null;setMoving(false);}}/>;
 }
 // Every solid prop casts and receives shadows; thin double-sided surfaces (paths, fields, grass) only receive, avoiding self-shadow streaks.
 function ShadowSetup(){const scene=useThree(s=>s.scene);useLayoutEffect(()=>{scene.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh||m.name==='ocean')return;const mats=([] as THREE.Material[]).concat(m.material);if(mats.some(x=>x.transparent||(x as THREE.MeshBasicMaterial).isMeshBasicMaterial))return;m.receiveShadow=true;if(!mats.some(x=>x.side===THREE.DoubleSide))m.castShadow=true;});},[scene]);return null;}
@@ -143,12 +145,19 @@ function LightRig(){
 function Ready({onReady}:{onReady:()=>void}){useEffect(onReady,[onReady]);return null;}
 export default function World({selected,visited,onSelect,request,reduced,onReady,paused}:{selected:string|null;visited:string[];onSelect:(m:Memory)=>void;request:ViewRequest;reduced:boolean;onReady:()=>void;paused:boolean}){
   return <Canvas shadows={{type:THREE.PCFShadowMap}} dpr={[1,window.innerWidth<700?1.5:2]} camera={{position:[0,3.2,8.7],fov:43,near:.1,far:80}} gl={{antialias:false,alpha:true,stencil:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.08}} onCreated={({gl})=>{gl.setClearColor(0x000000,0);}}>
-    <ambientLight intensity={.3} color="#b9c6ff"/><hemisphereLight args={['#93a6e6','#3d4566',1.15]}/><LightRig/>
-    <Ocean reduced={reduced}/><Landscape/><LakesideLife/>{trip.memories.map(m=><Island key={m.id} memory={m} reduced={reduced}/>)}<SailingFleet reduced={reduced}/><SeaDetails reduced={reduced}/><Clouds reduced={reduced}/><SantaSleigh reduced={reduced}/><Snowfall reduced={reduced} count={window.innerWidth<700?900:1600}/>
-    {trip.memories.map((m,i)=><Marker key={m.id} memory={m} index={i} visited={visited.includes(m.id)} active={selected===m.id} onSelect={onSelect}/>)}
+    <ambientLight intensity={.16} color="#b9c6ff"/><hemisphereLight args={['#93a6e6','#3d4566',.8]}/>
+    {/* A soft studio of warm and cool panels, baked once into an environment map for gentle reflections. */}
+    <Environment resolution={128} frames={1} environmentIntensity={.6}>
+      <Lightformer form="rect" intensity={2.4} color="#ffc896" position={[-6,3,4]} scale={[7,5,1]} target={[0,0,0]}/>
+      <Lightformer form="rect" intensity={1.6} color="#9fb6ff" position={[6,3,-4]} scale={[7,5,1]} target={[0,0,0]}/>
+      <Lightformer form="circle" intensity={1.2} color="#fff4e2" position={[0,9,0]} scale={5} target={[0,0,0]}/>
+      <Lightformer form="rect" intensity={.7} color="#4a5a96" position={[0,-7,0]} scale={[12,12,1]} target={[0,0,0]}/>
+    </Environment><LightRig/>
+    <Ocean reduced={reduced}/><Landscape/><LakesideLife/>{trip.memories.map(m=><Island key={m.id} memory={m} reduced={reduced}/>)}<SailingFleet reduced={reduced}/><SeaDetails/><Clouds reduced={reduced}/><SantaSleigh reduced={reduced}/><Snowfall reduced={reduced} count={window.innerWidth<700?900:1600}/>
+    {trip.memories.map((m,i)=><Marker key={m.id} memory={m} index={i} visited={visited.includes(m.id)} active={selected===m.id} focused={selected!==null} onSelect={onSelect}/>)}
     <CameraRig request={request} reduced={reduced} paused={paused}/><ShadowSetup/><Ready onReady={onReady}/>
     {/* Ambient occlusion grounds trees, houses and rocks; bloom only picks up the over-bright bulbs and star. */}
-    <EffectComposer multisampling={0} enableNormalPass={false}><N8AO aoRadius={.32} distanceFalloff={.6} intensity={1.9} color="#24412f" halfRes quality="medium"/><Bloom mipmapBlur luminanceThreshold={1.35} luminanceSmoothing={.25} intensity={1.5} radius={.7}/><SMAA/></EffectComposer>
+    <EffectComposer multisampling={0} enableNormalPass={false}><N8AO aoRadius={.26} distanceFalloff={.5} intensity={2.1} color="#1d2a3f" quality="high"/><Bloom mipmapBlur luminanceThreshold={1.35} luminanceSmoothing={.25} intensity={1.5} radius={.7}/><SMAA/></EffectComposer>
   </Canvas>
 }
 

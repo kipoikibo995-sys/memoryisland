@@ -85,9 +85,9 @@ export function MiniFir({reduced=false,seed=0,white=false}:{reduced?:boolean;see
   const lights=useMemo(()=>Array.from({length:white?22:14},(_,i)=>{const t=i/(white?21:13),r=.14*(1-t)+.02,a=white?i*2.4:t*Math.PI*2*2.6+seed;return new THREE.Vector3(Math.cos(a)*r,.08+t*.34,Math.sin(a)*r);}),[seed,white]);
   return <group>
     <mesh position={[0,.04,0]}><cylinderGeometry args={[.02,.026,.08,6]}/><meshStandardMaterial color="#6e5038"/></mesh>
-    {[[.13,.15,.2],[.25,.11,.16],[.36,.07,.13]].map(([y,r,h],i)=><group key={i}>
-      <mesh position={[0,y,0]}><coneGeometry args={[r,h,10]}/><meshStandardMaterial color="#2c6247" roughness={.9}/></mesh>
-      <mesh position={[0,y+h*.27,0]}><coneGeometry args={[r*.52,h*.48,10]}/><meshStandardMaterial color={SNOW} roughness={.85}/></mesh>
+    {[[.12,.16,.19],[.22,.13,.16],[.31,.095,.13],[.39,.06,.1]].map(([y,r,h],i)=><group key={i}>
+      <mesh position={[0,y,0]}><coneGeometry args={[r,h,18]}/><meshStandardMaterial color={i%2?'#2f6a4c':'#285f43'} roughness={.9}/></mesh>
+      <mesh position={[0,y+h*.27,0]}><coneGeometry args={[r*.52,h*.48,18]}/><meshStandardMaterial color={SNOW} roughness={.85}/></mesh>
     </group>)}
     <Bulbs points={lights} size={.0075} reduced={reduced} seed={seed} white={white}/>
   </group>;
