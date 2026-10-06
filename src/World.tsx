@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
 import { EffectComposer, N8AO, SMAA } from '@react-three/postprocessing';
@@ -90,7 +90,7 @@ function Ocean({reduced}:{reduced:boolean}){
     g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));return g;
   },[]);
   useFrame(({clock})=>{if(!reduced)time.value=clock.elapsedTime;});
-  return <mesh geometry={geometry} receiveShadow><meshStandardMaterial vertexColors roughness={.42} metalness={0} onBeforeCompile={shader=>{
+  return <mesh name="ocean" geometry={geometry} receiveShadow><meshStandardMaterial vertexColors roughness={.42} metalness={0} onBeforeCompile={shader=>{
     shader.uniforms.uTime=time;shader.vertexShader='uniform float uTime;\n'+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n transformed += normal * (sin(position.x * 9.0 + uTime * 0.7) * cos(position.z * 8.0 + uTime * 0.5) * 0.006);');
   }}/></mesh>
@@ -117,13 +117,16 @@ function CameraRig({request,reduced,paused}:{request:ViewRequest;reduced:boolean
   });
   return <OrbitControls ref={controls} makeDefault enabled={!moving} enablePan={false} enableDamping={!reduced&&!moving} dampingFactor={.07} rotateSpeed={.55} zoomSpeed={.65} minDistance={6.6} maxDistance={16} minPolarAngle={.08} maxPolarAngle={Math.PI-.08} autoRotate={!interacted&&!paused&&!reduced&&!moving} autoRotateSpeed={.055} onStart={()=>{hold.current=null;setInteracted(true);move.current=null;setMoving(false);}}/>;
 }
+// Every solid prop casts and receives shadows; thin double-sided surfaces (paths, fields, grass) only receive, avoiding self-shadow streaks.
+function ShadowSetup(){const scene=useThree(s=>s.scene);useLayoutEffect(()=>{scene.traverse(o=>{const m=o as THREE.Mesh;if(!m.isMesh||m.name==='ocean')return;const mats=([] as THREE.Material[]).concat(m.material);if(mats.some(x=>x.transparent||(x as THREE.MeshBasicMaterial).isMeshBasicMaterial))return;m.receiveShadow=true;if(!mats.some(x=>x.side===THREE.DoubleSide))m.castShadow=true;});},[scene]);return null;}
+const SHADOW_MAP=window.innerWidth<700?2048:4096;
 function Ready({onReady}:{onReady:()=>void}){useEffect(onReady,[onReady]);return null;}
 export default function World({selected,visited,onSelect,request,reduced,onReady,paused}:{selected:string|null;visited:string[];onSelect:(m:Memory)=>void;request:ViewRequest;reduced:boolean;onReady:()=>void;paused:boolean}){
-  return <Canvas shadows dpr={[1,window.innerWidth<700?1.5:2]} camera={{position:[0,3.2,8.7],fov:43,near:.1,far:80}} gl={{antialias:false,alpha:true,stencil:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.12}} onCreated={({gl})=>{gl.setClearColor(0x000000,0);}}>
-    <ambientLight intensity={.42}/><hemisphereLight args={['#fff6df','#7fa79a',.95]}/><directionalLight position={[-4,7,5]} intensity={3.1} color="#fff0d6" castShadow shadow-mapSize={[2048,2048]} shadow-camera-left={-3.6} shadow-camera-right={3.6} shadow-camera-top={3.6} shadow-camera-bottom={-3.6} shadow-camera-near={2} shadow-camera-far={18} shadow-bias={-.0002} shadow-normalBias={.02}/><directionalLight position={[5,1.5,-4]} intensity={.85} color="#bfe6f0"/>
+  return <Canvas shadows={{type:THREE.PCFShadowMap}} dpr={[1,window.innerWidth<700?1.5:2]} camera={{position:[0,3.2,8.7],fov:43,near:.1,far:80}} gl={{antialias:false,alpha:true,stencil:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.12}} onCreated={({gl})=>{gl.setClearColor(0x000000,0);}}>
+    <ambientLight intensity={.42}/><hemisphereLight args={['#fff6df','#7fa79a',.95]}/><directionalLight position={[-5.4,5.2,4.6]} intensity={3.3} color="#fff0d6" castShadow shadow-mapSize={[SHADOW_MAP,SHADOW_MAP]} shadow-camera-left={-3.4} shadow-camera-right={3.4} shadow-camera-top={3.4} shadow-camera-bottom={-3.4} shadow-camera-near={3} shadow-camera-far={15} shadow-bias={-.00015} shadow-normalBias={.012}/><directionalLight position={[5,1.5,-4]} intensity={.85} color="#bfe6f0"/>
     <Ocean reduced={reduced}/><Landscape/><LakesideLife/>{trip.memories.map(m=><Island key={m.id} memory={m} reduced={reduced}/>)}<SailingFleet reduced={reduced}/><SeaDetails reduced={reduced}/><Clouds reduced={reduced}/>
     {trip.memories.map((m,i)=><Marker key={m.id} memory={m} index={i} visited={visited.includes(m.id)} active={selected===m.id} onSelect={onSelect}/>)}
-    <CameraRig request={request} reduced={reduced} paused={paused}/><Ready onReady={onReady}/>
+    <CameraRig request={request} reduced={reduced} paused={paused}/><ShadowSetup/><Ready onReady={onReady}/>
     {/* Ambient occlusion grounds trees, houses and rocks so the planet reads as one crafted model. */}
     <EffectComposer multisampling={0} enableNormalPass={false}><N8AO aoRadius={.32} distanceFalloff={.6} intensity={1.9} color="#24412f" halfRes quality="medium"/><SMAA/></EffectComposer>
   </Canvas>
