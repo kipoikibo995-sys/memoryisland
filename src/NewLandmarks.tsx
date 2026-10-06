@@ -1,5 +1,6 @@
 import type { Memory } from './data/trip';
 import { Ground, Box, Post, FlowerPot, Bench } from './Details';
+import { Glow } from './Christmas';
 
 function Garden(){return <>
   {[-.25,0,.25].map((x,i)=><Ground key={i} x={x} z={-.1+(i%2)*.24}><mesh position={[0,.024,0]} scale={[1,.25,.72]} receiveShadow><cylinderGeometry args={[.145,.15,.12,18]}/><meshStandardMaterial color="#d0ba88"/></mesh>{[-1,0,1].map(j=><group key={j} position={[j*.07,0,(j%2)*.045]}><Post at={[0,.075,0]} height={.12} radius={.008} color="#6d986a"/><mesh position={[0,.15,0]}><sphereGeometry args={[.032,8,6]}/><meshStandardMaterial color={['#e8a299','#edcc83','#d5b5cc'][i]}/></mesh></group>)}</Ground>)}
@@ -17,7 +18,7 @@ function Stargazing(){return <>
     </group>
   </Ground>
   <Ground x={-.35} z={-.15} rotation={.6}><Bench/></Ground>
-  {[-.29,.29].map(x=><Ground key={x} x={x} z={.34}><Post at={[0,.10,0]} height={.2} radius={.012}/><Box at={[0,.23,0]} size={[.058,.08,.055]} color="#f5d49a"/><Box at={[0,.28,0]} size={[.073,.02,.067]} color="#7e927b"/></Ground>)}
+  {[-.29,.29].map(x=><Ground key={x} x={x} z={.34}><Post at={[0,.10,0]} height={.2} radius={.012}/><Glow at={[0,.23,0]} size={[.058,.08,.055]}/><Box at={[0,.28,0]} size={[.073,.02,.067]} color="#7e927b"/></Ground>)}
 </>}
 function Coral(){return <>
   <Ground height={.09}><mesh position={[0,.004,0]}><cylinderGeometry args={[.38,.38,.008,40]}/><meshStandardMaterial color="#88c8bd"/></mesh>
@@ -29,7 +30,7 @@ function Coral(){return <>
   <Ground x={-.37} z={.32}><mesh rotation={[Math.PI/2,0,0]}><torusGeometry args={[.059,.016,6,16]}/><meshStandardMaterial color="#efbb80"/></mesh></Ground>
 </>}
 function Cafe(){return <>
-  <Ground z={-.13}><Box at={[0,.16,0]} size={[.40,.32,.30]} color="#f1dfb8"/><Box at={[0,.19,.16]} size={[.30,.14,.015]} color="#749a93"/><Box at={[0,.135,.205]} size={[.43,.035,.13]} color="#c99762"/>
+  <Ground z={-.13}><Box at={[0,.16,0]} size={[.40,.32,.30]} color="#f1dfb8"/><Glow at={[0,.19,.16]} size={[.30,.14,.015]}/><Box at={[0,.135,.205]} size={[.43,.035,.13]} color="#c99762"/>
     {Array.from({length:6},(_,i)=><mesh key={i} position={[-.225+i*.09,.355,.11]} rotation={[.13,0,0]} castShadow><boxGeometry args={[.09,.025,.53]}/><meshStandardMaterial color={i%2?'#f7e5b8':'#d99b73'}/></mesh>)}
     {[-.23,.23].map(x=><Post key={x} at={[x,.17,.34]} height={.34} radius={.012} color="#aa8b61"/>)}
   </Ground>

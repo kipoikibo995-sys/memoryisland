@@ -2,7 +2,7 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
 import { Bloom, EffectComposer, N8AO, SMAA } from '@react-three/postprocessing';
-import { Bulbs, ChristmasTree, Sled, Snowfall, Snowman } from './Christmas';
+import { Bulbs, ChimneySmoke, ChristmasTree, Glow, SantaSleigh, Sled, Snowfall, Snowman } from './Christmas';
 import * as THREE from 'three';
 import { trip } from './data/trip';
 import Landscape from './Landscape';
@@ -41,7 +41,8 @@ function House({reduced}:{reduced:boolean}){return <group rotation={[0,-.3,0]}>
   <Bulbs points={EAVE_LIGHTS} size={.0095} reduced={reduced} seed={2}/>
   <group position={[.06,.26,.192]}><mesh rotation={[0,0,0]}><torusGeometry args={[.035,.012,8,22]}/><meshStandardMaterial color="#2f6a49"/></mesh><mesh position={[0,-.032,.006]}><sphereGeometry args={[.011,10,8]}/><meshStandardMaterial color="#c8303a"/></mesh></group>
   <mesh position={[.04,.12,.183]}><boxGeometry args={[.095,.24,.014]}/><meshStandardMaterial color="#4a8279"/></mesh>
-  <mesh position={[-.12,.23,.184]}><boxGeometry args={[.085,.085,.018]}/><meshStandardMaterial color="#91bec3"/></mesh>
+  <Glow at={[-.12,.23,.184]} size={[.085,.085,.018]}/><Glow at={[-.217,.2,.02]} size={[.018,.08,.09]}/>
+  <group position={[.16,.56,-.06]}><ChimneySmoke reduced={reduced}/></group>
   <mesh position={[.16,.42,-.06]} castShadow><boxGeometry args={[.065,.26,.07]}/><meshStandardMaterial color="#e8cbad"/></mesh>
   {[-1,0,1,2].map(i=><mesh key={i} position={[-.39,.055,i*.13-.2]} castShadow><boxGeometry args={[.035,.17,.035]}/><meshStandardMaterial color="#f7e4ba"/></mesh>)}
   <mesh position={[-.39,.09,0]}><boxGeometry args={[.025,.027,.57]}/><meshStandardMaterial color="#f7e4ba"/></mesh>
@@ -51,7 +52,7 @@ function Lighthouse(){return <group>
   <mesh castShadow position={[0,.32,0]}><cylinderGeometry args={[.12,.18,.64,10]}/><meshStandardMaterial color="#fff4d7" flatShading/></mesh>
   <mesh position={[0,.38,0]}><cylinderGeometry args={[.141,.155,.13,10]}/><meshStandardMaterial color="#d98162"/></mesh>
   <mesh castShadow position={[0,.66,0]}><cylinderGeometry args={[.21,.2,.045,10]}/><meshStandardMaterial color="#647e73"/></mesh>
-  <mesh position={[0,.76,0]}><cylinderGeometry args={[.12,.12,.16,8]}/><meshStandardMaterial color="#ffcf6c" emissive="#ffe3a1" emissiveIntensity={.5}/></mesh>
+  <mesh position={[0,.76,0]}><cylinderGeometry args={[.12,.12,.16,8]}/><meshBasicMaterial color={[3.6,2.7,1.2]} toneMapped={false}/></mesh>
   <mesh castShadow position={[0,.89,0]}><coneGeometry args={[.23,.17,10]}/><meshStandardMaterial color="#ce7352" flatShading/></mesh>
   <mesh position={[0,.1,.17]}><boxGeometry args={[.09,.18,.018]}/><meshStandardMaterial color="#527a75"/></mesh>
 </group>}
@@ -123,13 +124,13 @@ function ShadowSetup(){const scene=useThree(s=>s.scene);useLayoutEffect(()=>{sce
 const SHADOW_MAP=window.innerWidth<700?2048:4096;
 function Ready({onReady}:{onReady:()=>void}){useEffect(onReady,[onReady]);return null;}
 export default function World({selected,visited,onSelect,request,reduced,onReady,paused}:{selected:string|null;visited:string[];onSelect:(m:Memory)=>void;request:ViewRequest;reduced:boolean;onReady:()=>void;paused:boolean}){
-  return <Canvas shadows={{type:THREE.PCFShadowMap}} dpr={[1,window.innerWidth<700?1.5:2]} camera={{position:[0,3.2,8.7],fov:43,near:.1,far:80}} gl={{antialias:false,alpha:true,stencil:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.02}} onCreated={({gl})=>{gl.setClearColor(0x000000,0);}}>
-    <ambientLight intensity={.4}/><hemisphereLight args={['#f1f6ff','#8ea4b6',.95]}/><directionalLight position={[-5.4,5.2,4.6]} intensity={2.9} color="#ffeed8" castShadow shadow-mapSize={[SHADOW_MAP,SHADOW_MAP]} shadow-camera-left={-3.4} shadow-camera-right={3.4} shadow-camera-top={3.4} shadow-camera-bottom={-3.4} shadow-camera-near={3} shadow-camera-far={15} shadow-bias={-.00015} shadow-normalBias={.012}/><directionalLight position={[5,1.5,-4]} intensity={1} color="#b9d3ff"/>
-    <Ocean reduced={reduced}/><Landscape/><LakesideLife/>{trip.memories.map(m=><Island key={m.id} memory={m} reduced={reduced}/>)}<SailingFleet reduced={reduced}/><SeaDetails reduced={reduced}/><Clouds reduced={reduced}/><Snowfall reduced={reduced} count={window.innerWidth<700?900:1600}/>
+  return <Canvas shadows={{type:THREE.PCFShadowMap}} dpr={[1,window.innerWidth<700?1.5:2]} camera={{position:[0,3.2,8.7],fov:43,near:.1,far:80}} gl={{antialias:false,alpha:true,stencil:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.08}} onCreated={({gl})=>{gl.setClearColor(0x000000,0);}}>
+    <ambientLight intensity={.3} color="#b9c6ff"/><hemisphereLight args={['#93a6e6','#3d4566',1.15]}/><directionalLight position={[-6.2,3,4.2]} intensity={3.3} color="#ffc896" castShadow shadow-mapSize={[SHADOW_MAP,SHADOW_MAP]} shadow-camera-left={-3.4} shadow-camera-right={3.4} shadow-camera-top={3.4} shadow-camera-bottom={-3.4} shadow-camera-near={3} shadow-camera-far={15} shadow-bias={-.00015} shadow-normalBias={.012}/><directionalLight position={[4.5,3.5,-4]} intensity={1.5} color="#a3bcff"/>
+    <Ocean reduced={reduced}/><Landscape/><LakesideLife/>{trip.memories.map(m=><Island key={m.id} memory={m} reduced={reduced}/>)}<SailingFleet reduced={reduced}/><SeaDetails reduced={reduced}/><Clouds reduced={reduced}/><SantaSleigh reduced={reduced}/><Snowfall reduced={reduced} count={window.innerWidth<700?900:1600}/>
     {trip.memories.map((m,i)=><Marker key={m.id} memory={m} index={i} visited={visited.includes(m.id)} active={selected===m.id} onSelect={onSelect}/>)}
     <CameraRig request={request} reduced={reduced} paused={paused}/><ShadowSetup/><Ready onReady={onReady}/>
     {/* Ambient occlusion grounds trees, houses and rocks; bloom only picks up the over-bright bulbs and star. */}
-    <EffectComposer multisampling={0} enableNormalPass={false}><N8AO aoRadius={.32} distanceFalloff={.6} intensity={1.9} color="#24412f" halfRes quality="medium"/><Bloom mipmapBlur luminanceThreshold={1.6} luminanceSmoothing={.25} intensity={1.25} radius={.65}/><SMAA/></EffectComposer>
+    <EffectComposer multisampling={0} enableNormalPass={false}><N8AO aoRadius={.32} distanceFalloff={.6} intensity={1.9} color="#24412f" halfRes quality="medium"/><Bloom mipmapBlur luminanceThreshold={1.35} luminanceSmoothing={.25} intensity={1.5} radius={.7}/><SMAA/></EffectComposer>
   </Canvas>
 }
 

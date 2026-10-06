@@ -105,3 +105,50 @@ export function Wreath(){return <group rotation={[Math.PI/2,0,0]}>
   <mesh><torusGeometry args={[.07,.024,8,20]}/><meshStandardMaterial color="#2f6a49" roughness={.9}/></mesh>
   <mesh position={[0,-.07,.01]}><sphereGeometry args={[.018,10,8]}/><meshStandardMaterial color="#c8303a"/></mesh>
 </group>}
+
+/** Warm, unlit pane used for windows and lamps so they glow through the bloom pass. */
+export function Glow({at,size,color=[3.2,2.1,.9]}:{at:[number,number,number];size:[number,number,number];color?:[number,number,number]}){
+  return <mesh position={at}><boxGeometry args={size}/><meshBasicMaterial color={color} toneMapped={false}/></mesh>;
+}
+
+/** Soft puffs drifting up from a chimney; each puff grows and fades on a loop. */
+export function ChimneySmoke({reduced}:{reduced:boolean}){
+  const puffs=useRef<(THREE.Mesh|null)[]>([]);
+  useFrame(({clock})=>{const t=clock.elapsedTime;puffs.current.forEach((m,i)=>{if(!m)return;const k=reduced?i/6:((t*.22+i/6)%1);m.position.set(Math.sin(k*5+i)*.025+k*.05,k*.34,0);m.scale.setScalar(.02+k*.05);(m.material as THREE.MeshStandardMaterial).opacity=.55*(1-k)*Math.min(1,k*6);});});
+  return <group>{Array.from({length:6},(_,i)=><mesh key={i} ref={m=>{puffs.current[i]=m;}}><sphereGeometry args={[1,12,10]}/><meshStandardMaterial color="#eef1f6" transparent depthWrite={false} roughness={1}/></mesh>)}</group>;
+}
+
+function Reindeer({lead=false}:{lead?:boolean}){return <group>
+  <mesh position={[0,0,0]} rotation={[Math.PI/2,0,0]} castShadow><capsuleGeometry args={[.045,.11,4,10]}/><meshStandardMaterial color="#8a5a3a"/></mesh>
+  <mesh position={[0,.06,.1]} rotation={[-.6,0,0]}><cylinderGeometry args={[.018,.024,.08,8]}/><meshStandardMaterial color="#8a5a3a"/></mesh>
+  <mesh position={[0,.1,.13]}><sphereGeometry args={[.032,12,10]}/><meshStandardMaterial color="#9a6844"/></mesh>
+  <mesh position={[0,.095,.165]}>{lead?<><sphereGeometry args={[.014,10,8]}/><meshBasicMaterial color={[4.5,.5,.4]} toneMapped={false}/></>:<><sphereGeometry args={[.01,8,6]}/><meshStandardMaterial color="#2b1d16"/></>}</mesh>
+  {[-1,1].map(s=><group key={s} position={[s*.018,.13,.12]} rotation={[0,0,s*-.5]}><mesh position={[0,.03,0]}><cylinderGeometry args={[.004,.005,.06,5]}/><meshStandardMaterial color="#e8d6b5"/></mesh><mesh position={[s*-.012,.045,0]} rotation={[0,0,s*.9]}><cylinderGeometry args={[.003,.004,.03,5]}/><meshStandardMaterial color="#e8d6b5"/></mesh></group>)}
+  {[[-1,.06],[1,.06],[-1,-.06],[1,-.06]].map(([s,z],i)=><mesh key={i} position={[s*.025,-.06,z]} rotation={[z>0?-.5:.5,0,0]}><cylinderGeometry args={[.007,.006,.07,5]}/><meshStandardMaterial color="#6f4630"/></mesh>)}
+</group>}
+
+/** Santa's sleigh and four reindeer circling the island on a tilted orbit. */
+export function SantaSleigh({reduced}:{reduced:boolean}){
+  const ref=useRef<THREE.Group>(null);
+  const tmp=useMemo(()=>({p:new THREE.Vector3(),q:new THREE.Vector3(),tilt:new THREE.Quaternion().setFromEuler(new THREE.Euler(.38,0,.22))}),[]);
+  const trail=useMemo(()=>Array.from({length:14},(_,i)=>new THREE.Vector3((Math.random()-.5)*.06,(Math.random()-.5)*.05,-.2-i*.055)),[]);
+  const orbit=(a:number,out:THREE.Vector3)=>out.set(Math.cos(a)*3.55,Math.sin(a*2)*.12,Math.sin(a)*3.55).applyQuaternion(tmp.tilt);
+  useFrame(({clock})=>{if(!ref.current)return;const a=reduced?1.1:clock.elapsedTime*.16+1.1;orbit(a,tmp.p);orbit(a+.01,tmp.q);ref.current.position.copy(tmp.p);ref.current.up.copy(tmp.p).normalize();ref.current.lookAt(tmp.q);});
+  return <group ref={ref} scale={.62}>
+    <group position={[0,0,-.06]}>
+      {[-1,1].map(s=><mesh key={s} position={[s*.07,-.07,0]} rotation={[Math.PI/2,0,0]}><capsuleGeometry args={[.007,.3,4,8]}/><meshStandardMaterial color="#d9b04c" metalness={.6} roughness={.3}/></mesh>)}
+      <Box at={[0,0,0]} size={[.17,.09,.26]} color="#b8232d"/>
+      <Box at={[0,.07,-.1]} size={[.17,.1,.05]} color="#b8232d"/>
+      <Box at={[0,.048,.01]} size={[.175,.012,.27]} color="#d9b04c"/>
+      <mesh position={[0,.08,-.06]} castShadow><sphereGeometry args={[.055,14,12]}/><meshStandardMaterial color="#c8303a"/></mesh>
+      <mesh position={[0,.15,-.05]}><sphereGeometry args={[.032,12,10]}/><meshStandardMaterial color="#f2c7a5"/></mesh>
+      <mesh position={[0,.13,-.025]}><sphereGeometry args={[.03,12,10]}/><meshStandardMaterial color="#f7f7f4"/></mesh>
+      <mesh position={[0,.19,-.06]} rotation={[-.3,0,0]}><coneGeometry args={[.032,.07,12]}/><meshStandardMaterial color="#c8303a"/></mesh>
+      <mesh position={[0,.226,-.075]}><sphereGeometry args={[.012,8,6]}/><meshStandardMaterial color="#f7f7f4"/></mesh>
+      <mesh position={[0,.08,-.15]}><sphereGeometry args={[.05,12,10]}/><meshStandardMaterial color="#7a5636"/></mesh>
+    </group>
+    {[[-1,.36],[1,.36],[-1,.62],[1,.62]].map(([s,z],i)=><group key={i} position={[s*.06,.02,z]}><Reindeer lead={i===2}/></group>)}
+    {[-1,1].map(s=><mesh key={s} position={[s*.035,.03,.33]} rotation={[Math.PI/2,0,0]}><cylinderGeometry args={[.002,.002,.6,4]}/><meshBasicMaterial color="#d9b04c"/></mesh>)}
+    {trail.map((p,i)=><mesh key={i} position={p}><sphereGeometry args={[.012*(1-i/16),6,5]}/><meshBasicMaterial color={[3.2,2.6,1.4]} toneMapped={false} transparent opacity={1-i/15}/></mesh>)}
+  </group>;
+}
