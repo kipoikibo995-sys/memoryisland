@@ -8,9 +8,9 @@ export const BULB_COLORS:[number,number,number][]=[[4,.8,.65],[3.7,2.6,.8],[.9,3
 const SNOW='#f4f7f9';
 
 /** A strand of glowing bulbs that twinkle gently, laid along any list of points. */
-export function Bulbs({points,size=.011,reduced=false,seed=0}:{points:THREE.Vector3[];size?:number;reduced?:boolean;seed?:number}){
+export function Bulbs({points,size=.011,reduced=false,seed=0,white=false}:{points:THREE.Vector3[];size?:number;reduced?:boolean;seed?:number;white?:boolean}){
   const ref=useRef<THREE.InstancedMesh>(null);
-  const base=useMemo(()=>points.map((_,i)=>new THREE.Color(...BULB_COLORS[(i+seed)%BULB_COLORS.length])),[points,seed]);
+  const base=useMemo(()=>points.map((_,i)=>white?new THREE.Color(3.4,3.1,2.4):new THREE.Color(...BULB_COLORS[(i+seed)%BULB_COLORS.length])),[points,seed,white]);
   useLayoutEffect(()=>{const obj=new THREE.Object3D();points.forEach((p,i)=>{obj.position.copy(p);obj.scale.setScalar(size);obj.updateMatrix();ref.current!.setMatrixAt(i,obj.matrix);ref.current!.setColorAt(i,base[i]);});ref.current!.instanceMatrix.needsUpdate=true;ref.current!.instanceColor!.needsUpdate=true;ref.current!.computeBoundingSphere();},[points,size,base]);
   const color=useMemo(()=>new THREE.Color(),[]);
   useFrame(({clock})=>{if(reduced||!ref.current)return;const t=clock.elapsedTime;base.forEach((c,i)=>{const k=.55+.45*Math.max(0,Math.sin(t*1.7+i*1.9+seed));ref.current!.setColorAt(i,color.copy(c).multiplyScalar(k));});ref.current.instanceColor!.needsUpdate=true;});
@@ -81,15 +81,15 @@ export function Snowfall({reduced,count=1600}:{reduced:boolean;count?:number}){
 }
 
 /** A small snowy fir wrapped in a few lights, for scattering around landmarks. */
-export function MiniFir({reduced=false,seed=0}:{reduced?:boolean;seed?:number}){
-  const lights=useMemo(()=>Array.from({length:14},(_,i)=>{const t=i/13,r=.14*(1-t)+.02,a=t*Math.PI*2*2.6+seed;return new THREE.Vector3(Math.cos(a)*r,.08+t*.34,Math.sin(a)*r);}),[seed]);
+export function MiniFir({reduced=false,seed=0,white=false}:{reduced?:boolean;seed?:number;white?:boolean}){
+  const lights=useMemo(()=>Array.from({length:white?22:14},(_,i)=>{const t=i/(white?21:13),r=.14*(1-t)+.02,a=white?i*2.4:t*Math.PI*2*2.6+seed;return new THREE.Vector3(Math.cos(a)*r,.08+t*.34,Math.sin(a)*r);}),[seed,white]);
   return <group>
     <mesh position={[0,.04,0]}><cylinderGeometry args={[.02,.026,.08,6]}/><meshStandardMaterial color="#6e5038"/></mesh>
     {[[.13,.15,.2],[.25,.11,.16],[.36,.07,.13]].map(([y,r,h],i)=><group key={i}>
       <mesh position={[0,y,0]}><coneGeometry args={[r,h,10]}/><meshStandardMaterial color="#2c6247" roughness={.9}/></mesh>
       <mesh position={[0,y+h*.27,0]}><coneGeometry args={[r*.52,h*.48,10]}/><meshStandardMaterial color={SNOW} roughness={.85}/></mesh>
     </group>)}
-    <Bulbs points={lights} size={.0075} reduced={reduced} seed={seed}/>
+    <Bulbs points={lights} size={.0075} reduced={reduced} seed={seed} white={white}/>
   </group>;
 }
 
@@ -118,7 +118,7 @@ export function ChimneySmoke({reduced}:{reduced:boolean}){
   return <group>{Array.from({length:6},(_,i)=><mesh key={i} ref={m=>{puffs.current[i]=m;}}><sphereGeometry args={[1,12,10]}/><meshStandardMaterial color="#eef1f6" transparent depthWrite={false} roughness={1}/></mesh>)}</group>;
 }
 
-function Reindeer({lead=false}:{lead?:boolean}){return <group>
+export function Reindeer({lead=false}:{lead?:boolean}){return <group>
   <mesh position={[0,0,0]} rotation={[Math.PI/2,0,0]} castShadow><capsuleGeometry args={[.045,.11,4,10]}/><meshStandardMaterial color="#8a5a3a"/></mesh>
   <mesh position={[0,.06,.1]} rotation={[-.6,0,0]}><cylinderGeometry args={[.018,.024,.08,8]}/><meshStandardMaterial color="#8a5a3a"/></mesh>
   <mesh position={[0,.1,.13]}><sphereGeometry args={[.032,12,10]}/><meshStandardMaterial color="#9a6844"/></mesh>

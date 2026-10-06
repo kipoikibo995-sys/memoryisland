@@ -69,7 +69,7 @@ function DenseForest(){
     for(let i=0;i<3300;i++){
       const y=1-2*(i+.5)/3300,a=i*2.3999632297,n=new THREE.Vector3(Math.sqrt(1-y*y)*Math.sin(a),y,Math.sqrt(1-y*y)*Math.cos(a));
       const h=terrainHeight(n),density=noise(n.x*7+1,n.y*7+3,n.z*7+2);
-      if(h<.04||h>.28||nearMemory(n,.245)||n.dot(geo([8,37]))>.987||nearRoad(n)||random(i+28)>(density>.43?.30:.05))continue;
+      if(h<.04||h>.28||nearMemory(n,.3)||n.dot(geo([8,37]))>.987||nearRoad(n)||random(i+28)>(density>.43?.30:.05))continue;
       result.push({n,height:.10+random(i+5)*.14,size:.058+random(i+55)*.034,seed:i,pine:random(i+77)<(h>.11?.9:.7)});
     }
     return result;
@@ -113,7 +113,7 @@ function Meadow(){
     const grass:THREE.Vector3[]=[],rocks:THREE.Vector3[]=[],shrubs:THREE.Vector3[]=[];
     for(let i=0;i<19000;i++){
       const y=1-2*random(i*3+1),a=random(i*3+2)*Math.PI*2,n=new THREE.Vector3(Math.sqrt(1-y*y)*Math.cos(a),y,Math.sqrt(1-y*y)*Math.sin(a)),h=terrainHeight(n);
-      if(h<.029||h>.43||nearMemory(n,.19)||n.dot(geo([8,37]))>.987||nearRoad(n))continue;
+      if(h<.029||h>.43||nearMemory(n,.27)||n.dot(geo([8,37]))>.987||nearRoad(n))continue;
       if(i%120===0)rocks.push(n);else if(i%19===0&&h<.24)shrubs.push(n);else if(i%2===0)grass.push(n);
     }
     return{grass,rocks,shrubs};
@@ -148,7 +148,7 @@ function Farm(){
   return <><mesh geometry={field} receiveShadow><meshStandardMaterial color="#e6ebec" side={THREE.DoubleSide}/></mesh><instancedMesh ref={crops} args={[undefined,undefined,420]}><coneGeometry args={[1,1,5]}/><meshStandardMaterial roughness={1}/></instancedMesh><instancedMesh ref={fences} args={[undefined,undefined,26]} castShadow><boxGeometry args={[1,1,1]}/><meshStandardMaterial color="#c8bd93"/></instancedMesh></>;
 }
 function RoadPoles(){
-  const points=useMemo(()=>Array.from({length:7},(_,i)=>{const n=memoryNormals[1].clone().lerp(memoryNormals[2],.18+i*.095).normalize();n.applyAxisAngle(UP,.022);return n;}),[]);
+  const points=useMemo(()=>Array.from({length:7},(_,i)=>{const n=memoryNormals[1].clone().lerp(memoryNormals[4],.18+i*.095).normalize();n.applyAxisAngle(UP,.022);return n;}),[]);
   const curves=useMemo(()=>points.slice(1).map((n,i)=>{const a=surface(points[i],.27),b=surface(n,.27),mid=a.clone().lerp(b,.5).normalize().multiplyScalar((a.length()+b.length())/2-.035);return new THREE.CatmullRomCurve3([a,mid,b]);}),[points]);
   const wires=useMemo(()=>curves.map(c=>new THREE.TubeGeometry(c,14,.002,3,false)),[curves]);
   const bulbs=useMemo(()=>curves.flatMap(c=>c.getSpacedPoints(10).slice(1,-1).map(p=>p.clone().addScaledVector(p.clone().normalize(),-.006))),[curves]);
