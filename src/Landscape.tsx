@@ -1,5 +1,6 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { Bulbs } from './Christmas';
 import { geo, noise, random, terrainHeight, surface, nearMemory, nearRoad, roadPairs, memoryNormals, PLANET_RADIUS as R, UP } from './terrain';
 
@@ -62,6 +63,18 @@ function PathStones(){
   useLayoutEffect(()=>{const obj=new THREE.Object3D(),c=new THREE.Color();stones.forEach(({n,seed},i)=>{const s=.006+random(seed)*.006;obj.quaternion.setFromUnitVectors(UP,n);obj.rotateY(seed);obj.position.copy(surface(n,s*.25));obj.scale.set(s*1.3,s*.7,s);obj.updateMatrix();ref.current!.setMatrixAt(i,obj.matrix);ref.current!.setColorAt(i,c.set(['#d6cfb6','#c2bb9f','#e3dcc4'][seed%3]));});ref.current!.instanceMatrix.needsUpdate=true;ref.current!.instanceColor!.needsUpdate=true;ref.current!.computeBoundingSphere();},[stones]);
   return <instancedMesh ref={ref} args={[undefined,undefined,stones.length]} castShadow receiveShadow><dodecahedronGeometry args={[1,0]}/><meshStandardMaterial roughness={1} flatShading/></instancedMesh>;
 }
+/** Snow-dusted cobbles laid in rings under each city, fraying out at the plaza's edge. */
+const COBBLE=new RoundedBoxGeometry(1,1,1,2,.28);
+function Plazas(){
+  const ref=useRef<THREE.InstancedMesh>(null);
+  const stones=useMemo(()=>memoryNormals.flatMap((m,k)=>{const q=new THREE.Quaternion().setFromUnitVectors(UP,m),out:{n:THREE.Vector3;a:number;seed:number}[]=[];
+    for(let r=.03;r<.52;r+=.025){const count=Math.max(4,Math.round(2*Math.PI*r/.029));for(let i=0;i<count;i++){const seed=k*7919+Math.round(r*1000)*31+i,a=i/count*Math.PI*2+r*9;
+      if(r>.38&&random(seed)<(r-.38)/.14)continue;const n=new THREE.Vector3(Math.cos(a)*r,R,Math.sin(a)*r).normalize().applyQuaternion(q);if(terrainHeight(n)<.03)continue;out.push({n,a,seed});}}
+    return out;}),[]);
+  useLayoutEffect(()=>{const obj=new THREE.Object3D(),c=new THREE.Color(),snow=new THREE.Color('#e9eef2');stones.forEach(({n,a,seed},i)=>{obj.quaternion.setFromUnitVectors(UP,n);obj.rotateY(-a+(random(seed+3)-.5)*.2);obj.position.copy(surface(n,.002));const s=.85+random(seed)*.25;obj.scale.set(.025*s,.006,.021*s);obj.updateMatrix();ref.current!.setMatrixAt(i,obj.matrix);
+    c.set(['#b7b0a3','#a69f93','#c6bfb2','#9d968b'][seed%4]).lerp(snow,random(seed+9)*.55);ref.current!.setColorAt(i,c);});ref.current!.instanceMatrix.needsUpdate=true;ref.current!.instanceColor!.needsUpdate=true;ref.current!.computeBoundingSphere();},[stones]);
+  return <instancedMesh ref={ref} args={[COBBLE,undefined,stones.length]} receiveShadow><meshStandardMaterial roughness={.85}/></instancedMesh>;
+}
 function DenseForest(){
   const trunks=useRef<THREE.InstancedMesh>(null),branches=useRef<THREE.InstancedMesh>(null),crowns=useRef<THREE.InstancedMesh>(null),tiers=useRef<THREE.InstancedMesh>(null),caps=useRef<THREE.InstancedMesh>(null);
   const trees=useMemo(()=>{
@@ -70,7 +83,7 @@ function DenseForest(){
       const y=1-2*(i+.5)/3300,a=i*2.3999632297,n=new THREE.Vector3(Math.sqrt(1-y*y)*Math.sin(a),y,Math.sqrt(1-y*y)*Math.cos(a));
       const h=terrainHeight(n),density=noise(n.x*7+1,n.y*7+3,n.z*7+2);
       if(h<.04||h>.28||nearMemory(n,.3)||n.dot(geo([8,37]))>.987||nearRoad(n)||random(i+28)>(density>.43?.30:.05))continue;
-      result.push({n,height:.10+random(i+5)*.14,size:.058+random(i+55)*.034,seed:i,pine:random(i+77)<(h>.11?.9:.7)});
+      result.push({n,height:.10+random(i+5)*.14,size:.058+random(i+55)*.034,seed:i,pine:random(i+77)<(h>.11?.97:.88)});
     }
     return result;
   },[]);
@@ -103,8 +116,8 @@ function DenseForest(){
     <instancedMesh ref={trunks} args={[undefined,undefined,trees.length]} castShadow><cylinderGeometry args={[.65,1,1,6]}/><meshStandardMaterial color="#75644a" roughness={1}/></instancedMesh>
     <instancedMesh ref={branches} args={[undefined,undefined,broad.length*2]} castShadow><cylinderGeometry args={[.5,1,1,5]}/><meshStandardMaterial color="#7a694b"/></instancedMesh>
     <instancedMesh ref={crowns} args={[undefined,undefined,broad.length*CROWN_LOBES]} castShadow receiveShadow><icosahedronGeometry args={[1,3]}/><meshStandardMaterial roughness={.92} onBeforeCompile={painted}/></instancedMesh>
-    <instancedMesh ref={tiers} args={[undefined,undefined,pines.length*PINE_TIERS]} castShadow receiveShadow><coneGeometry args={[1,1,9]}/><meshStandardMaterial roughness={.95} flatShading onBeforeCompile={painted}/></instancedMesh>
-    <instancedMesh ref={caps} args={[undefined,undefined,pines.length*PINE_TIERS]} castShadow receiveShadow><coneGeometry args={[1,1,9]}/><meshStandardMaterial color="#f2f6f8" roughness={.85} flatShading/></instancedMesh>
+    <instancedMesh ref={tiers} args={[undefined,undefined,pines.length*PINE_TIERS]} castShadow receiveShadow><coneGeometry args={[1,1,12]}/><meshStandardMaterial roughness={.95} flatShading onBeforeCompile={painted}/></instancedMesh>
+    <instancedMesh ref={caps} args={[undefined,undefined,pines.length*PINE_TIERS]} castShadow receiveShadow><coneGeometry args={[1,1,12]}/><meshStandardMaterial color="#f2f6f8" roughness={.85} flatShading/></instancedMesh>
   </group>;
 }
 function Meadow(){
@@ -114,7 +127,7 @@ function Meadow(){
     for(let i=0;i<19000;i++){
       const y=1-2*random(i*3+1),a=random(i*3+2)*Math.PI*2,n=new THREE.Vector3(Math.sqrt(1-y*y)*Math.cos(a),y,Math.sqrt(1-y*y)*Math.sin(a)),h=terrainHeight(n);
       if(h<.029||h>.43||nearMemory(n,.27)||n.dot(geo([8,37]))>.987||nearRoad(n))continue;
-      if(i%120===0)rocks.push(n);else if(i%19===0&&h<.24)shrubs.push(n);else if(i%2===0)grass.push(n);
+      if(i%260===0)rocks.push(n);else if(i%45===0&&h<.24)shrubs.push(n);else if(i%5===0)grass.push(n);
     }
     return{grass,rocks,shrubs};
   },[]);
@@ -154,4 +167,4 @@ function RoadPoles(){
   const bulbs=useMemo(()=>curves.flatMap(c=>c.getSpacedPoints(10).slice(1,-1).map(p=>p.clone().addScaledVector(p.clone().normalize(),-.006))),[curves]);
   return <>{points.map((n,i)=><group key={i} position={surface(n)} quaternion={new THREE.Quaternion().setFromUnitVectors(UP,n)}><mesh position={[0,.13,0]} castShadow><cylinderGeometry args={[.009,.013,.26,5]}/><meshStandardMaterial color="#7c7157"/></mesh><mesh position={[0,.25,0]}><boxGeometry args={[.105,.013,.013]}/><meshStandardMaterial color="#8f8567"/></mesh>{[-.041,.041].map(x=><mesh key={x} position={[x,.267,0]}><cylinderGeometry args={[.005,.005,.025,5]}/><meshStandardMaterial color="#d7d6bb"/></mesh>)}</group>)}{wires.map((g,i)=><mesh key={i} geometry={g}><meshBasicMaterial color="#4f5f58"/></mesh>)}<Bulbs points={bulbs} size={.0075} seed={1}/></>;
 }
-export default function Landscape(){return <><Terrain/><Paths/><PathStones/><DenseForest/><Meadow/><LakeBridge/><Farm/><RoadPoles/></>}
+export default function Landscape(){return <><Terrain/><Paths/><PathStones/><Plazas/><DenseForest/><Meadow/><LakeBridge/><Farm/><RoadPoles/></>}

@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Box, Post, Ground } from './Details';
@@ -8,6 +8,7 @@ import type { Memory } from './data/trip';
 // Miniature versions of ten European Christmas landmarks. Front faces +z; one unit ≈ the island's small scale.
 const SNOW='#f2f6f8';
 type V3=[number,number,number];
+const hash=(n:number)=>{const x=Math.sin(n*127.1+311.7)*43758.5453;return x-Math.floor(x);};
 
 /** Triangular prism: the gable faces ±z, the ridge runs along z. Flat-shaded. */
 function prism(w:number,h:number,d:number){
@@ -21,12 +22,27 @@ export function Roof({w,h,d,at=[0,0,0],color='#9c4a3c',snow=true,rotation=0}:{w:
   return <group position={at} rotation={[0,rotation,0]}>
     <mesh geometry={g}><meshStandardMaterial color={color} roughness={.8}/></mesh>
     {snow&&<mesh geometry={g} position={[0,.012,0]} scale={[1.07,1,1.05]}><meshStandardMaterial color={SNOW} roughness={.85}/></mesh>}
+    {snow&&<Icicles x={w*1.07/2} d={d}/>}
   </group>;
 }
+/** A fringe of icicles hanging from both eaves of a snowy roof, one draw call per roof. */
+function Icicles({x,d}:{x:number;d:number}){
+  const ref=useRef<THREE.InstancedMesh>(null),n=Math.max(3,Math.round(d/.02));
+  useLayoutEffect(()=>{const o=new THREE.Object3D();let k=0;for(const s of [-1,1])for(let i=0;i<n;i++){const len=.008+hash(i*3+s+d*50)*.02;o.position.set(s*(x+.001),.01-len/2,-d/2+d*(i+.5)/n);o.rotation.set(Math.PI,0,0);o.scale.set(.0035,len,.0035);o.updateMatrix();ref.current!.setMatrixAt(k++,o.matrix);}ref.current!.instanceMatrix.needsUpdate=true;ref.current!.computeBoundingSphere();},[x,d,n]);
+  return <instancedMesh ref={ref} args={[undefined,undefined,n*2]}><coneGeometry args={[1,1,5]}/><meshStandardMaterial color="#e6f3ff" roughness={.12} metalness={.1}/></instancedMesh>;
+}
 /** A grid of lit windows on a facade; a few stay dark so the building feels lived in. */
-function Windows({w,y,z,cols,rows,gap=.05,size=[.022,.03],seed=0}:{w:number;y:number;z:number;cols:number;rows:number;gap?:number;size?:[number,number];seed?:number}){
-  return <>{Array.from({length:cols*rows},(_,i)=>{const c=i%cols,r=Math.floor(i/cols),x=cols>1?-w/2+w*c/(cols-1):0,lit=(i*7+seed*3)%5!==0;
-    return lit?<Glow key={i} at={[x,y+r*gap,z]} size={[size[0],size[1],.004]}/>:<Box key={i} at={[x,y+r*gap,z]} size={[size[0],size[1],.004]} color="#2b3240"/>;})}</>;
+function Window({at,size:[w,h],lit=true,frame='#efe6d2'}:{at:V3;size:[number,number];lit?:boolean;frame?:string}){return <group position={at}>
+  <Box at={[0,0,-.001]} size={[w+.008,h+.008,.005]} color={frame}/>
+  {lit?<Glow at={[0,0,.002]} size={[w,h,.002]}/>:<mesh position={[0,0,.002]}><boxGeometry args={[w,h,.002]}/><meshStandardMaterial color="#26304a" roughness={.2} metalness={.3}/></mesh>}
+  <mesh position={[0,0,.0035]}><boxGeometry args={[.0022,h,.0015]}/><meshStandardMaterial color={frame}/></mesh>
+  <mesh position={[0,h*.12,.0035]}><boxGeometry args={[w,.0022,.0015]}/><meshStandardMaterial color={frame}/></mesh>
+  <Box at={[0,-h/2-.0055,.004]} size={[w+.014,.005,.012]} color="#d6cbb5"/>
+  <mesh position={[0,-h/2-.002,.004]}><boxGeometry args={[w+.012,.003,.01]}/><meshStandardMaterial color={SNOW}/></mesh>
+</group>}
+function Windows({w,y,z,cols,rows,gap=.05,size=[.022,.03],seed=0,frame}:{w:number;y:number;z:number;cols:number;rows:number;gap?:number;size?:[number,number];seed?:number;frame?:string}){
+  return <>{Array.from({length:cols*rows},(_,i)=>{const c=i%cols,r=Math.floor(i/cols),x=cols>1?-w/2+w*c/(cols-1):0;
+    return <Window key={i} at={[x,y+r*gap,z]} size={size} lit={(i*7+seed*3)%5!==0} frame={frame}/>;})}</>;
 }
 function Spire({at,r,h,color='#3e4652',seg=8}:{at:V3;r:number;h:number;color?:string;seg?:number}){
   return <mesh position={at}><coneGeometry args={[r,h,seg]}/><meshStandardMaterial color={color} roughness={.6}/></mesh>;
@@ -41,9 +57,14 @@ function Figure({color='#c8303a',at=[0,0,0]}:{color?:string;at?:V3}){return <gro
 </group>}
 
 /** Market stall with a striped roof (stripes run down the slope) and a glowing counter. */
-export function Stall({colors=['#c8303a','#f6efe2']}:{colors?:[string,string]}){
+const STALL_LIGHTS=Array.from({length:8},(_,i)=>new THREE.Vector3(-.095+i*.027,.143-Math.sin(i/7*Math.PI)*.006,.079));
+const GOODS=['#c8303a','#e2b75a','#2f6a49','#8a5a3a','#f2e6cf'];
+export function Stall({colors=['#c8303a','#f6efe2'],reduced=false}:{colors?:[string,string];reduced?:boolean}){
   const strips=6,d=.15,g=useMemo(()=>prism(.2,.07,d/strips),[]);
   return <group>
+    <Bulbs points={STALL_LIGHTS} size={.0055} reduced={reduced} seed={colors[0].length}/>
+    {[-.05,-.02,.015,.045].map((x,i)=><mesh key={x} position={[x,.108,.03]}>{i%2?<sphereGeometry args={[.009,10,8]}/>:<boxGeometry args={[.016,.014,.014]}/>}<meshStandardMaterial color={GOODS[i]} roughness={.4}/></mesh>)}
+    <Box at={[0,.172,.076]} size={[.08,.022,.006]} color="#3b2b22"/>
     <Box at={[0,.05,0]} size={[.16,.1,.11]} color="#7c5134"/>
     <Glow at={[0,.078,.056]} size={[.14,.022,.004]} color={[3,2,.95]}/>
     {[-.075,.075].map(x=><Post key={x} at={[x,.125,.06]} height={.05} radius={.005} color="#5d3d27"/>)}
@@ -112,6 +133,8 @@ export function BigBen(){return <group>
   {[0,1,2,3].map(i=><group key={i} rotation={[0,i*Math.PI/2,0]}><Disc at={[0,.525,.081]} r={.048} color={[3.1,2.7,1.8]}/><mesh position={[0,.525,.0815]}><torusGeometry args={[.05,.005,6,24]}/><meshStandardMaterial color="#c9a24d" metalness={.5} roughness={.4}/></mesh><Box at={[0,.536,.083]} size={[.004,.03,.002]} color="#20242a"/><Box at={[.01,.525,.083]} size={[.022,.004,.002]} color="#20242a"/></group>)}
   <Box at={[0,.625,0]} size={[.13,.07,.13]} color="#cdb781"/>
   {[0,1,2,3].map(i=><group key={i} rotation={[0,i*Math.PI/2,0]}><Box at={[0,.625,.066]} size={[.06,.045,.004]} color="#2a2f36"/></group>)}
+  <Box at={[0,.592,0]} size={[.168,.008,.168]} color="#c9a24d"/>
+  {[-1,1].flatMap(a=>[-1,1].map(b=><Spire key={`${a}${b}`} at={[a*.062,.69,b*.062]} r={.011} h={.07} color="#c9a24d"/>))}
   <Spire at={[0,.71,0]} r={.105} h={.1} seg={4} color="#47535c"/>
   <Spire at={[0,.81,0]} r={.022} h={.12} seg={8} color="#c9a24d"/>
 </group>}
@@ -128,9 +151,12 @@ export function LondonStreet({reduced}:{reduced:boolean}){return <>
 
 /* 5 · Strasbourg: the pink sandstone cathedral with its famous single spire, and half-timbered houses. */
 export function StrasbourgCathedral(){return <group>
-  <Box at={[0,.1,-.14]} size={[.18,.2,.4]} color="#c48a76"/>
+  <Box at={[0,.1,-.14]} size={[.18,.2,.4]} color="#cf957f"/>
   <Roof w={.2} h={.12} d={.4} at={[0,.2,-.14]} color="#6b4f49"/>
-  <Box at={[0,.19,.1]} size={[.27,.38,.07]} color="#cf9580"/>
+  <Box at={[0,.19,.1]} size={[.27,.38,.07]} color="#d79e88"/>
+  {[-.13,-.045,.045,.13].map(x=><Box key={x} at={[x,.17,.138]} size={[.016,.34,.012]} color="#c88b75"/>)}
+  {[-.09,0,.09].map(x=><Spire key={x} at={[x,.405,.136]} r={.009} h={.05} color="#c88b75"/>)}
+  {[-.06,.06].map(x=><Box key={x} at={[x,.34,.137]} size={[.04,.06,.004]} color="#6e4038"/>)}
   <Disc at={[0,.26,.136]} r={.048} color={[3.2,1.9,1.4]}/>
   <mesh position={[0,.26,.137]}><torusGeometry args={[.05,.006,6,24]}/><meshStandardMaterial color="#a96d5c"/></mesh>
   {[-.08,0,.08].map(x=><Box key={x} at={[x,.06,.136]} size={[x?.04:.055,x?.09:.11,.004]} color="#4a2f2a"/>)}
@@ -204,8 +230,8 @@ export function IceRink({reduced}:{reduced:boolean}){
   const skaters=useRef<THREE.Group>(null);
   useFrame((_,dt)=>{if(skaters.current&&!reduced)skaters.current.rotation.y-=dt*.45;});
   return <group>
-    <mesh position={[0,.006,0]} scale={[1,1,.62]}><cylinderGeometry args={[.27,.27,.008,40]}/><meshStandardMaterial color="#dcefff" roughness={.08} metalness={.15}/></mesh>
-    <mesh position={[0,.012,0]} scale={[1,1,.62]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.275,.009,6,48]}/><meshStandardMaterial color={SNOW}/></mesh>
+    <mesh position={[0,.01,0]} scale={[1,1,.62]}><cylinderGeometry args={[.27,.27,.008,48]}/><meshStandardMaterial color="#dcefff" roughness={.08} metalness={.15}/></mesh>
+    <mesh position={[0,.016,0]} scale={[1,1,.62]} rotation={[Math.PI/2,0,0]}><torusGeometry args={[.275,.009,6,48]}/><meshStandardMaterial color={SNOW}/></mesh>
     <group ref={skaters} scale={[1,1,.62]}>{[0,1,2,3].map(i=>{const a=i/4*Math.PI*2+i*.3,r=.12+(i%2)*.08;return <group key={i} position={[Math.cos(a)*r,.01,Math.sin(a)*r]} rotation={[0,-a,0]} scale={[1,1,1/.62]}><Figure color={['#c8303a','#2f6a49','#3f6fa0','#e2b75a'][i]}/></group>;})}</group>
   </group>;
 }
@@ -247,12 +273,15 @@ export function MusicNotes({reduced}:{reduced:boolean}){
 
 /* 10 · Zermatt: wooden chalets with balconies beneath a miniature Matterhorn. */
 export function Matterhorn(){
-  // One twisted five-sided cone; vertex colours put snow on the upper faces and streaks on the ridges below.
-  const rock=useMemo(()=>{const g=new THREE.ConeGeometry(.34,.95,5,8).toNonIndexed();const p=g.attributes.position,colors:number[]=[],c=new THREE.Color(),stone=new THREE.Color('#7d8189'),snow=new THREE.Color(SNOW);
-    for(let i=0;i<p.count;i++){const y=p.getY(i)+.475,k=y/.95;p.setX(i,p.getX(i)+k*k*.09);p.setZ(i,p.getZ(i)*(1-.15*k));}
-    for(let f=0;f<p.count;f+=3){const k=(p.getY(f)+p.getY(f+1)+p.getY(f+2))/3/.95+.475/.95;const cover=k>.52?1:k>.3?((f/3)%2?.85:.15):0;c.copy(stone).lerp(snow,cover);for(let v=0;v<3;v++)colors.push(c.r,c.g,c.b);}
-    g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));g.computeVertexNormals();return g;},[]);
-  return <mesh geometry={rock} position={[0,.475,0]}><meshStandardMaterial vertexColors roughness={.9} flatShading/></mesh>;
+  // A twisted, rock-faceted cone: jittered vertices give craggy faces, and snow settles on high or upward-facing facets.
+  const rock=useMemo(()=>{const g=new THREE.ConeGeometry(.34,.95,8,16).toNonIndexed();const p=g.attributes.position,v=new THREE.Vector3();
+    for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const y=v.y+.475,k=y/.95,key=Math.round(v.x*500)*7+Math.round(v.y*500)*13+Math.round(v.z*500)*17,j=k>.98?0:(hash(key)-.5)*.045*(1-k*.6);
+      p.setXYZ(i,v.x*(1+j*6)+k*k*.09,v.y+j*.4,v.z*(1-.18*k)*(1+j*6));}
+    g.computeVertexNormals();const nrm=g.attributes.normal,colors:number[]=[],c=new THREE.Color(),stone=new THREE.Color('#7b7f86'),dark=new THREE.Color('#5f636b'),snow=new THREE.Color(SNOW);
+    for(let f=0;f<p.count;f+=3){const k=(p.getY(f)+p.getY(f+1)+p.getY(f+2))/3/.95+.5,up=(nrm.getY(f)+nrm.getY(f+1)+nrm.getY(f+2))/3;
+      const cover=THREE.MathUtils.clamp((k-.42)*3.2+(up-.35)*1.8+(hash(f)-.5)*.6,0,1);c.copy(hash(f+1)>.5?stone:dark).lerp(snow,cover>.5?1:cover*.4);for(let q=0;q<3;q++)colors.push(c.r,c.g,c.b);}
+    g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));return g;},[]);
+  return <mesh geometry={rock} position={[0,.475,0]}><meshStandardMaterial vertexColors roughness={.92} flatShading/></mesh>;
 }
 export function Chalet({seed=0}:{seed?:number}){return <group>
   <Box at={[0,.03,0]} size={[.19,.06,.16]} color="#8f8a80"/>
@@ -270,13 +299,13 @@ export function CityDetails({kind,reduced}:{kind:Memory['kind'];reduced:boolean}
   const fir=(x:number,z:number,scale=1,seed=0)=><Ground x={x} z={z}><group scale={scale}><MiniFir reduced={reduced} seed={seed}/></group></Ground>;
   switch(kind){
     case 'lapland':return <Lapland reduced={reduced}/>;
-    case 'tallinn':return <><Ground x={.5} z={-.2} rotation={-.45}><TallinnTownHall/></Ground><Ground x={-.52} z={.08} rotation={1}><Stall/></Ground><Ground x={-.44} z={.32} rotation={.7}><Stall colors={['#2f6a49','#f6efe2']}/></Ground></>;
+    case 'tallinn':return <><Ground x={.5} z={-.2} rotation={-.45}><TallinnTownHall/></Ground><Ground x={-.52} z={.08} rotation={1}><Stall reduced={reduced}/></Ground><Ground x={-.44} z={.32} rotation={.7}><Stall reduced={reduced} colors={['#2f6a49','#f6efe2']}/></Ground></>;
     case 'nyhavn':return <><Ground z={-.42}><Nyhavn/></Ground><Ground x={-.55} z={.05} rotation={.6}><TivoliWheel reduced={reduced}/></Ground></>;
     case 'london':return <LondonStreet reduced={reduced}/>;
-    case 'strasbourg':return <><Ground x={.46} z={.04} rotation={-.6}><TimberHouse/></Ground><Ground x={.4} z={.3} rotation={-.95}><TimberHouse color="#f0dcc0" roof="#7c3a30"/></Ground><Ground x={-.46} z={-.16} rotation={.6}><TimberHouse color="#efe4cf"/></Ground>{fir(-.42,.3,2,3)}<Ground x={.06} z={.46}><Stall/></Ground><Ground x={-.16} z={.47} rotation={.2}><Stall colors={['#2f6a49','#f6efe2']}/></Ground></>;
-    case 'nuremberg':return <>{[-.25,0,.25].flatMap(x=>[.06,.32].map(z=><Ground key={`${x}${z}`} x={x} z={z}><Stall/></Ground>))}{fir(-.5,-.2,1.4,1)}{fir(.5,-.18,1.4,2)}</>;
-    case 'prague':return <><Ground x={.46} z={-.12} rotation={-.4}><Orloj/></Ground>{fir(-.46,-.06,1.9,2)}<Ground x={-.28} z={.34} rotation={.35}><Stall colors={['#2f6a49','#f6efe2']}/></Ground><Ground x={.04} z={.42}><Stall/></Ground><Ground x={.34} z={.3} rotation={-.4}><Stall colors={['#3f6fa0','#f6efe2']}/></Ground></>;
-    case 'vienna':return <><Ground z={.28}><IceRink reduced={reduced}/></Ground><Ground x={-.48} z={.1}><HeartTree reduced={reduced}/></Ground><Ground x={.48} z={.12}><HeartTree reduced={reduced}/></Ground><Ground x={-.5} z={-.22} rotation={.5}><Stall/></Ground><Ground x={.5} z={-.22} rotation={-.5}><Stall colors={['#2f6a49','#f6efe2']}/></Ground></>;
+    case 'strasbourg':return <><Ground x={.46} z={.04} rotation={-.6}><TimberHouse/></Ground><Ground x={.4} z={.3} rotation={-.95}><TimberHouse color="#f0dcc0" roof="#7c3a30"/></Ground><Ground x={-.46} z={-.16} rotation={.6}><TimberHouse color="#efe4cf"/></Ground>{fir(-.42,.3,2,3)}<Ground x={.06} z={.46}><Stall reduced={reduced}/></Ground><Ground x={-.16} z={.47} rotation={.2}><Stall reduced={reduced} colors={['#2f6a49','#f6efe2']}/></Ground></>;
+    case 'nuremberg':return <>{[-.25,0,.25].flatMap(x=>[.06,.32].map(z=><Ground key={`${x}${z}`} x={x} z={z}><Stall reduced={reduced}/></Ground>))}{fir(-.5,-.2,1.4,1)}{fir(.5,-.18,1.4,2)}</>;
+    case 'prague':return <><Ground x={.46} z={-.12} rotation={-.4}><Orloj/></Ground>{fir(-.46,-.06,1.9,2)}<Ground x={-.28} z={.34} rotation={.35}><Stall reduced={reduced} colors={['#2f6a49','#f6efe2']}/></Ground><Ground x={.04} z={.42}><Stall reduced={reduced}/></Ground><Ground x={.34} z={.3} rotation={-.4}><Stall reduced={reduced} colors={['#3f6fa0','#f6efe2']}/></Ground></>;
+    case 'vienna':return <><Ground z={.28}><IceRink reduced={reduced}/></Ground><Ground x={-.48} z={.1}><HeartTree reduced={reduced}/></Ground><Ground x={.48} z={.12}><HeartTree reduced={reduced}/></Ground><Ground x={-.5} z={-.22} rotation={.5}><Stall reduced={reduced}/></Ground><Ground x={.5} z={-.22} rotation={-.5}><Stall reduced={reduced} colors={['#2f6a49','#f6efe2']}/></Ground></>;
     case 'silentnight':return <>{[[-.36,.18],[.36,.2],[-.12,.4],[.14,.42]].map(([x,z])=><Ground key={`${x}${z}`} x={x} z={z}><Lantern/></Ground>)}{fir(-.45,-.25,1.3,1)}{fir(.46,-.2,1.3,3)}</>;
     case 'zermatt':return <><Ground x={-.32} z={.16} rotation={.35}><Chalet/></Ground><Ground x={.06} z={.34}><Chalet seed={2}/></Ground><Ground x={.4} z={.1} rotation={-.4}><Chalet seed={4}/></Ground>{fir(-.52,-.1,1.2,2)}{fir(.55,-.25,1.2,4)}<Ground x={-.12} z={.55}><Lantern/></Ground></>;
   }
