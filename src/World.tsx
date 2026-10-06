@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { Html, OrbitControls } from '@react-three/drei';
+import { EffectComposer, N8AO, SMAA } from '@react-three/postprocessing';
 import * as THREE from 'three';
 import { trip } from './data/trip';
 import Landscape from './Landscape';
 import { CottageCraft, HarborCraft, LakesideLife } from './CraftDetails';
 import NewLandmarks from './NewLandmarks';
 import type { Memory } from './data/trip';
+import { terrainHeight } from './terrain';
 import { IslandDetails, SeaDetails, GableRoof, Sailboat, SailingFleet } from './Details';
 
 const R = 2.5;
@@ -74,11 +76,21 @@ function Clouds({reduced}:{reduced:boolean}){
     </group>;
   })}</group>
 }
+// Depth-tinted sea: deep teal offshore, turquoise shallows and a soft foam line along every coast.
 function Ocean({reduced}:{reduced:boolean}){
-  const material=useRef<THREE.MeshStandardMaterial>(null);
   const time=useMemo(()=>({value:0}),[]);
+  const geometry=useMemo(()=>{
+    const g=new THREE.SphereGeometry(R,256,160),p=g.attributes.position,colors:number[]=[],n=new THREE.Vector3(),c=new THREE.Color();
+    const deep=new THREE.Color('#3c97a6'),shallow=new THREE.Color('#79cfc4'),foam=new THREE.Color('#eef6ec');
+    for(let i=0;i<p.count;i++){
+      const h=terrainHeight(n.fromBufferAttribute(p,i).normalize());
+      c.copy(deep).lerp(shallow,THREE.MathUtils.smoothstep(h,-.075,-.004)).lerp(foam,THREE.MathUtils.smoothstep(h,-.009,0)*.75);
+      colors.push(c.r,c.g,c.b);
+    }
+    g.setAttribute('color',new THREE.Float32BufferAttribute(colors,3));return g;
+  },[]);
   useFrame(({clock})=>{if(!reduced)time.value=clock.elapsedTime;});
-  return <mesh receiveShadow><sphereGeometry args={[R,96,64]}/><meshStandardMaterial ref={material} color="#58b8b8" roughness={.72} metalness={.035} onBeforeCompile={shader=>{
+  return <mesh geometry={geometry} receiveShadow><meshStandardMaterial vertexColors roughness={.42} metalness={0} onBeforeCompile={shader=>{
     shader.uniforms.uTime=time;shader.vertexShader='uniform float uTime;\n'+shader.vertexShader;
     shader.vertexShader=shader.vertexShader.replace('#include <begin_vertex>','#include <begin_vertex>\n transformed += normal * (sin(position.x * 9.0 + uTime * 0.7) * cos(position.z * 8.0 + uTime * 0.5) * 0.006);');
   }}/></mesh>
@@ -107,11 +119,13 @@ function CameraRig({request,reduced,paused}:{request:ViewRequest;reduced:boolean
 }
 function Ready({onReady}:{onReady:()=>void}){useEffect(onReady,[onReady]);return null;}
 export default function World({selected,visited,onSelect,request,reduced,onReady,paused}:{selected:string|null;visited:string[];onSelect:(m:Memory)=>void;request:ViewRequest;reduced:boolean;onReady:()=>void;paused:boolean}){
-  return <Canvas shadows dpr={[1,window.innerWidth<700?1.5:2]} camera={{position:[0,3.2,8.7],fov:43,near:.1,far:80}} gl={{antialias:true,alpha:true,powerPreference:'high-performance'}} onCreated={({gl})=>{gl.setClearColor(0x000000,0);}}>
-    <ambientLight intensity={.82}/><hemisphereLight args={['#fff8e4','#a7c3b3',1.05]}/><directionalLight position={[-4,7,5]} intensity={2.15} color="#fff3dc" castShadow shadow-mapSize={[2048,2048]} shadow-camera-left={-5} shadow-camera-right={5} shadow-camera-top={5} shadow-camera-bottom={-5} shadow-bias={-.0003} shadow-normalBias={.025} shadow-radius={3}/><directionalLight position={[5,1,-4]} intensity={.6} color="#c4eff2"/>
+  return <Canvas shadows dpr={[1,window.innerWidth<700?1.5:2]} camera={{position:[0,3.2,8.7],fov:43,near:.1,far:80}} gl={{antialias:false,alpha:true,stencil:false,powerPreference:'high-performance',toneMapping:THREE.ACESFilmicToneMapping,toneMappingExposure:1.12}} onCreated={({gl})=>{gl.setClearColor(0x000000,0);}}>
+    <ambientLight intensity={.42}/><hemisphereLight args={['#fff6df','#7fa79a',.95]}/><directionalLight position={[-4,7,5]} intensity={3.1} color="#fff0d6" castShadow shadow-mapSize={[2048,2048]} shadow-camera-left={-3.6} shadow-camera-right={3.6} shadow-camera-top={3.6} shadow-camera-bottom={-3.6} shadow-camera-near={2} shadow-camera-far={18} shadow-bias={-.0002} shadow-normalBias={.02}/><directionalLight position={[5,1.5,-4]} intensity={.85} color="#bfe6f0"/>
     <Ocean reduced={reduced}/><Landscape/><LakesideLife/>{trip.memories.map(m=><Island key={m.id} memory={m} reduced={reduced}/>)}<SailingFleet reduced={reduced}/><SeaDetails reduced={reduced}/><Clouds reduced={reduced}/>
     {trip.memories.map((m,i)=><Marker key={m.id} memory={m} index={i} visited={visited.includes(m.id)} active={selected===m.id} onSelect={onSelect}/>)}
     <CameraRig request={request} reduced={reduced} paused={paused}/><Ready onReady={onReady}/>
+    {/* Ambient occlusion grounds trees, houses and rocks so the planet reads as one crafted model. */}
+    <EffectComposer multisampling={0} enableNormalPass={false}><N8AO aoRadius={.32} distanceFalloff={.6} intensity={1.9} color="#24412f" halfRes quality="medium"/><SMAA/></EffectComposer>
   </Canvas>
 }
 
