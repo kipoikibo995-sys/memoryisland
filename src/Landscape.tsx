@@ -49,41 +49,58 @@ function Paths(){
   }),[]);
   return <>{geometries.map((g,i)=><mesh key={i} geometry={g} receiveShadow><meshStandardMaterial color="#c3b07e" roughness={1} side={THREE.DoubleSide}/></mesh>)}</>;
 }
+const PINE_TIERS=3,PINE_COLORS=['#3f6f55','#4a7a58','#36664f','#55835c'],CROWN_LOBES=5,TREE_COLORS=['#5b8a58','#6b9660','#7ca366','#557f5c','#87aa6c'];
+function PathStones(){
+  const ref=useRef<THREE.InstancedMesh>(null);
+  const stones=useMemo(()=>roadPairs.flatMap(([start,end],k)=>Array.from({length:34},(_,i)=>{
+    const t=(i+.5)/34,n=memoryNormals[start].clone().lerp(memoryNormals[end],t).normalize(),next=memoryNormals[start].clone().lerp(memoryNormals[end],Math.min(1,t+.01)).normalize();
+    const side=new THREE.Vector3().crossVectors(n,next.sub(n)).normalize(),sign=i%2?1:-1,bend=Math.sin(t*Math.PI*5)*.008,width=.010+Math.sin(t*Math.PI)*.004;
+    return {n:n.clone().addScaledVector(side,bend+sign*(width+.009+random(i+k*40)*.004)).normalize(),seed:i+k*40};
+  }).filter(s=>terrainHeight(s.n)>.03&&!nearMemory(s.n,.2))),[]);
+  useLayoutEffect(()=>{const obj=new THREE.Object3D(),c=new THREE.Color();stones.forEach(({n,seed},i)=>{const s=.006+random(seed)*.006;obj.quaternion.setFromUnitVectors(UP,n);obj.rotateY(seed);obj.position.copy(surface(n,s*.25));obj.scale.set(s*1.3,s*.7,s);obj.updateMatrix();ref.current!.setMatrixAt(i,obj.matrix);ref.current!.setColorAt(i,c.set(['#d6cfb6','#c2bb9f','#e3dcc4'][seed%3]));});ref.current!.instanceMatrix.needsUpdate=true;ref.current!.instanceColor!.needsUpdate=true;ref.current!.computeBoundingSphere();},[stones]);
+  return <instancedMesh ref={ref} args={[undefined,undefined,stones.length]} castShadow receiveShadow><dodecahedronGeometry args={[1,0]}/><meshStandardMaterial roughness={1} flatShading/></instancedMesh>;
+}
 function DenseForest(){
-  const trunks=useRef<THREE.InstancedMesh>(null),branches=useRef<THREE.InstancedMesh>(null),crowns=useRef<THREE.InstancedMesh>(null),outlines=useRef<THREE.InstancedMesh>(null);
+  const trunks=useRef<THREE.InstancedMesh>(null),branches=useRef<THREE.InstancedMesh>(null),crowns=useRef<THREE.InstancedMesh>(null),tiers=useRef<THREE.InstancedMesh>(null);
   const trees=useMemo(()=>{
-    const result:{n:THREE.Vector3;height:number;size:number;seed:number}[]=[];
+    const result:{n:THREE.Vector3;height:number;size:number;seed:number;pine:boolean}[]=[];
     for(let i=0;i<3300;i++){
       const y=1-2*(i+.5)/3300,a=i*2.3999632297,n=new THREE.Vector3(Math.sqrt(1-y*y)*Math.sin(a),y,Math.sqrt(1-y*y)*Math.cos(a));
       const h=terrainHeight(n),density=noise(n.x*7+1,n.y*7+3,n.z*7+2);
-      if(h<.04||h>.28||nearMemory(n,.245)||n.dot(geo([8,37]))>.987||nearRoad(n)||random(i+28)>(density>.43?.45:.10))continue;
-      result.push({n,height:.10+random(i+5)*.15,size:.050+random(i+55)*.035,seed:i});
+      if(h<.04||h>.28||nearMemory(n,.245)||n.dot(geo([8,37]))>.987||nearRoad(n)||random(i+28)>(density>.43?.30:.05))continue;
+      result.push({n,height:.10+random(i+5)*.14,size:.058+random(i+55)*.034,seed:i,pine:random(i+77)<(h>.11?.55:.18)});
     }
     return result;
   },[]);
+  const pines=useMemo(()=>trees.filter(t=>t.pine),[trees]),broad=useMemo(()=>trees.filter(t=>!t.pine),[trees]);
   useLayoutEffect(()=>{
-    const obj=new THREE.Object3D(),color=new THREE.Color();
-    trees.forEach(({n,height,size,seed},i)=>{
+    const obj=new THREE.Object3D(),color=new THREE.Color(),tint=new THREE.Color();
+    trees.forEach(({n,height,pine},i)=>{const base=surface(n);obj.quaternion.setFromUnitVectors(UP,n);obj.position.copy(base).addScaledVector(n,height*(pine?.3:.5));obj.scale.set(.014,height*(pine?.6:1),.014);obj.updateMatrix();trunks.current!.setMatrixAt(i,obj.matrix);});
+    pines.forEach(({n,height,size,seed},i)=>{const base=surface(n),q=new THREE.Quaternion().setFromUnitVectors(UP,n);
+      for(let j=0;j<PINE_TIERS;j++){const w=size*(1.25-j*.3),y=height*(.42+j*.3);obj.quaternion.copy(q).multiply(new THREE.Quaternion().setFromAxisAngle(UP,seed+j));obj.position.copy(base).addScaledVector(n,y);obj.scale.set(w,height*.62,w);obj.updateMatrix();tiers.current!.setMatrixAt(i*PINE_TIERS+j,obj.matrix);
+        color.set(PINE_COLORS[seed%PINE_COLORS.length]).offsetHSL(0,0,j*.035);tiers.current!.setColorAt(i*PINE_TIERS+j,color);}
+    });
+    broad.forEach(({n,height,size,seed},i)=>{
       const base=surface(n),q=new THREE.Quaternion().setFromUnitVectors(UP,n);
-      obj.quaternion.copy(q);obj.position.copy(base).addScaledVector(n,height*.5);obj.scale.set(.014,height,.014);obj.updateMatrix();trunks.current!.setMatrixAt(i,obj.matrix);
       for(let j=0;j<2;j++){
         obj.quaternion.copy(q).multiply(new THREE.Quaternion().setFromEuler(new THREE.Euler(.42*(j?1:-1),seed,.3)));
         obj.position.copy(base).addScaledVector(n,height*.72);obj.scale.set(.008,height*.48,.008);obj.updateMatrix();branches.current!.setMatrixAt(i*2+j,obj.matrix);
       }
-      for(let j=0;j<8;j++){
-        const a=j*2.39996+seed,ring=j<5?1:.48,offset=new THREE.Vector3(Math.cos(a)*size*ring,height*(j<5?.80:1.02),Math.sin(a)*size*ring);
-        obj.position.copy(base).add(offset.applyQuaternion(q));obj.quaternion.copy(q);obj.scale.set(size*(.7+random(seed+j)*.2),size*.82,size*.76);obj.updateMatrix();crowns.current!.setMatrixAt(i*8+j,obj.matrix);
-        color.set(['#547f56','#668e5f','#789d62','#8caa70','#5a8663'][(seed+j)%5]);crowns.current!.setColorAt(i*8+j,color);
-        obj.scale.multiplyScalar(1.008);obj.updateMatrix();outlines.current!.setMatrixAt(i*8+j,obj.matrix);
+      // One hue per tree with gentle per-lobe shading reads as a single rounded crown instead of loose blobs.
+      tint.set(TREE_COLORS[seed%TREE_COLORS.length]);
+      for(let j=0;j<CROWN_LOBES;j++){
+        const a=j*2.39996+seed,top=j===CROWN_LOBES-1,offset=new THREE.Vector3(top?0:Math.cos(a)*size*.62,height*(top?1.0:.84),top?0:Math.sin(a)*size*.62);
+        obj.position.copy(base).add(offset.applyQuaternion(q));obj.quaternion.copy(q);obj.scale.set(size*(.86+random(seed+j)*.16),size*(top?.86:.78),size*(.82+random(seed+j+9)*.14));obj.updateMatrix();crowns.current!.setMatrixAt(i*CROWN_LOBES+j,obj.matrix);
+        color.copy(tint).offsetHSL(0,0,(top?.05:0)+(random(seed*3+j)-.5)*.05);crowns.current!.setColorAt(i*CROWN_LOBES+j,color);
       }
     });
-    [trunks,branches,crowns,outlines].forEach(r=>{r.current!.instanceMatrix.needsUpdate=true;r.current!.computeBoundingSphere();});crowns.current!.instanceColor!.needsUpdate=true;
-  },[trees]);
+    [trunks,branches,crowns,tiers].forEach(r=>{r.current!.instanceMatrix.needsUpdate=true;r.current!.computeBoundingSphere();});crowns.current!.instanceColor!.needsUpdate=true;tiers.current!.instanceColor!.needsUpdate=true;
+  },[trees,pines,broad]);
   return <group name="dense-forest">
     <instancedMesh ref={trunks} args={[undefined,undefined,trees.length]} castShadow><cylinderGeometry args={[.65,1,1,6]}/><meshStandardMaterial color="#75644a" roughness={1}/></instancedMesh>
-    <instancedMesh ref={branches} args={[undefined,undefined,trees.length*2]} castShadow><cylinderGeometry args={[.5,1,1,5]}/><meshStandardMaterial color="#7a694b"/></instancedMesh>
-    <instancedMesh ref={crowns} args={[undefined,undefined,trees.length*8]} castShadow receiveShadow><icosahedronGeometry args={[1,2]}/><meshStandardMaterial vertexColors={false} roughness={1} onBeforeCompile={painted}/></instancedMesh>
-    <instancedMesh ref={outlines} args={[undefined,undefined,trees.length*8]}><icosahedronGeometry args={[1,2]}/><meshBasicMaterial color="#315b3b" side={THREE.BackSide}/></instancedMesh>
+    <instancedMesh ref={branches} args={[undefined,undefined,broad.length*2]} castShadow><cylinderGeometry args={[.5,1,1,5]}/><meshStandardMaterial color="#7a694b"/></instancedMesh>
+    <instancedMesh ref={crowns} args={[undefined,undefined,broad.length*CROWN_LOBES]} castShadow receiveShadow><icosahedronGeometry args={[1,3]}/><meshStandardMaterial roughness={.92} onBeforeCompile={painted}/></instancedMesh>
+    <instancedMesh ref={tiers} args={[undefined,undefined,pines.length*PINE_TIERS]} castShadow receiveShadow><coneGeometry args={[1,1,9]}/><meshStandardMaterial roughness={.95} flatShading onBeforeCompile={painted}/></instancedMesh>
   </group>;
 }
 function Meadow(){
@@ -93,7 +110,7 @@ function Meadow(){
     for(let i=0;i<19000;i++){
       const y=1-2*random(i*3+1),a=random(i*3+2)*Math.PI*2,n=new THREE.Vector3(Math.sqrt(1-y*y)*Math.cos(a),y,Math.sqrt(1-y*y)*Math.sin(a)),h=terrainHeight(n);
       if(h<.029||h>.43||nearMemory(n,.19)||n.dot(geo([8,37]))>.987||nearRoad(n))continue;
-      if(i%55===0)rocks.push(n);else if(i%19===0&&h<.24)shrubs.push(n);else if(i%2===0)grass.push(n);
+      if(i%120===0)rocks.push(n);else if(i%19===0&&h<.24)shrubs.push(n);else if(i%2===0)grass.push(n);
     }
     return{grass,rocks,shrubs};
   },[]);
@@ -102,7 +119,7 @@ function Meadow(){
     data.grass.forEach((n,i)=>{obj.quaternion.setFromUnitVectors(UP,n);obj.rotateY(random(i)*6.28);obj.position.copy(surface(n,.004));obj.scale.set(.009+random(i)*.015,.016+random(i+1)*.025,.011);obj.updateMatrix();grass.current!.setMatrixAt(i,obj.matrix);grass.current!.setColorAt(i,new THREE.Color(['#a8bd69','#89aa58','#b9c97b','#719649'][i%4]));
       obj.position.copy(surface(n,.034));obj.scale.setScalar(i%9===0?.008:0);obj.updateMatrix();flowers.current!.setMatrixAt(i,obj.matrix);flowers.current!.setColorAt(i,new THREE.Color(['#edcf84','#e7c59c','#d9d8b7'][Math.floor(i/9)%3]));
     });
-    data.rocks.forEach((n,i)=>{const s=.04+random(i+8)*.075;obj.quaternion.setFromUnitVectors(UP,n);obj.rotateY(i);obj.position.copy(surface(n,s*.29));obj.scale.set(s,s*.7,s*.83);obj.updateMatrix();rocks.current!.setMatrixAt(i,obj.matrix);rocks.current!.setColorAt(i,new THREE.Color(['#9da384','#b2b295','#8c987b'][i%3]));});
+    data.rocks.forEach((n,i)=>{const s=.04+random(i+8)*.075;obj.quaternion.setFromUnitVectors(UP,n);obj.rotateY(i);obj.position.copy(surface(n,s*.29));obj.scale.set(s,s*.7,s*.83);obj.updateMatrix();rocks.current!.setMatrixAt(i,obj.matrix);rocks.current!.setColorAt(i,new THREE.Color(['#a6a98a','#b5b598','#98a283'][i%3]));});
     data.shrubs.forEach((n,i)=>{const s=.035+random(i)*.033;obj.quaternion.setFromUnitVectors(UP,n);obj.position.copy(surface(n,s*.47));obj.scale.set(s,s*.7,s);obj.updateMatrix();shrubs.current!.setMatrixAt(i,obj.matrix);shrubs.current!.setColorAt(i,new THREE.Color(['#628c4c','#8ea75d','#719b53'][i%3]));});
     [grass,flowers,rocks,shrubs].forEach(r=>{r.current!.instanceMatrix.needsUpdate=true;r.current!.instanceColor!.needsUpdate=true;r.current!.computeBoundingSphere();});
   },[data]);
@@ -131,4 +148,4 @@ function RoadPoles(){
   const wires=useMemo(()=>points.slice(1).map((n,i)=>{const a=surface(points[i],.27),b=surface(n,.27),mid=a.clone().lerp(b,.5).normalize().multiplyScalar((a.length()+b.length())/2-.035);return new THREE.TubeGeometry(new THREE.CatmullRomCurve3([a,mid,b]),14,.002,3,false);}),[points]);
   return <>{points.map((n,i)=><group key={i} position={surface(n)} quaternion={new THREE.Quaternion().setFromUnitVectors(UP,n)}><mesh position={[0,.13,0]} castShadow><cylinderGeometry args={[.009,.013,.26,5]}/><meshStandardMaterial color="#7c7157"/></mesh><mesh position={[0,.25,0]}><boxGeometry args={[.105,.013,.013]}/><meshStandardMaterial color="#8f8567"/></mesh>{[-.041,.041].map(x=><mesh key={x} position={[x,.267,0]}><cylinderGeometry args={[.005,.005,.025,5]}/><meshStandardMaterial color="#d7d6bb"/></mesh>)}</group>)}{wires.map((g,i)=><mesh key={i} geometry={g}><meshBasicMaterial color="#647664"/></mesh>)}</>;
 }
-export default function Landscape(){return <><Terrain/><Paths/><DenseForest/><Meadow/><LakeBridge/><Farm/><RoadPoles/></>}
+export default function Landscape(){return <><Terrain/><Paths/><PathStones/><DenseForest/><Meadow/><LakeBridge/><Farm/><RoadPoles/></>}
